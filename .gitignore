@@ -1,0 +1,115 @@
+# === INTELLILEARN PROJECT .gitignore ===
+# Strategic Logger System & Nova Sonic Voice AI
+# Author: Luis Arturo Parra - Telmo AI
+# Last Modified: 2025-09-10
+
+# === DEPENDENCIES ===
+# Never commit dependencies - use package.json instead
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# === BUILD OUTPUTS ===
+# Next.js build artifacts
+.next/
+out/
+dist/
+build/
+
+# TypeScript build cache
+*.tsbuildinfo
+.tsbuildinfo
+
+# === ENVIRONMENT VARIABLES ===
+# Sensitive configuration
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.aws
+
+# === CACHE DIRECTORIES ===
+.cache/
+.parcel-cache/
+.npm/
+.yarn/
+.eslintcache
+
+# === LOGS ===
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === RUNTIME FILES ===
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# === TESTING ===
+coverage/
+*.lcov
+.nyc_output
+test-results/
+playwright-report/
+
+# === IDE FILES ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === OS GENERATED FILES ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# === AWS ===
+.aws/
+
+# === TEMPORARY FILES ===
+tmp/
+temp/
+*.tmp
+
+# === LARGE BINARY FILES ===
+*.pack
+*.idx
+
+# === MEDIA FILES (if large) ===
+# Uncomment if you have large media files
+# *.mp4
+# *.avi
+# *.mov
+
+# === COMPRESSED FILES ===
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# === PROJECT SPECIFIC ===
+# Archive folder contents (keep structure)
+archive/
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# === KEEP THESE IMPORTANT FILES ===
+# !package.json
+# !package-lock.json
+# !README.md
+# !.gitignore

@@ -1,0 +1,55 @@
+{
+    "family": "assistant-implementation-task",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "1024",
+    "memory": "2048",
+    "taskRoleArn": "arn:aws:iam::076276934311:role/assistant-task-role",
+    "executionRoleArn": "arn:aws:iam::076276934311:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "name": "assistant-container",
+            "image": "076276934311.dkr.ecr.us-east-1.amazonaws.com/assistant-implementation:production-ready",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8000,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [
+                {
+                    "name": "AWS_DEFAULT_REGION",
+                    "value": "us-east-1"
+                },
+                {
+                    "name": "NOVA_MODEL_ID",
+                    "value": "amazon.nova-sonic-v1:0"
+                },
+                {
+                    "name": "ENABLE_BIDIRECTIONAL",
+                    "value": "true"
+                },
+                {
+                    "name": "PYTHON_VERSION",
+                    "value": "3.12"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/assistant-implementation",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "healthCheck": {
+                "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3,
+                "startPeriod": 60
+            }
+        }
+    ]
+}
