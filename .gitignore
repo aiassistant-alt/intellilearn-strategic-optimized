@@ -113,3 +113,9 @@ archive/
 # !package-lock.json
 # !README.md
 # !.gitignore
+
+# Google Chrome cache files (prevenir problemas de display en Cursor)
+**/cache/google-chrome/**
+**/*cache*/google-chrome/**
+fb[0-9a-f]*_0
+**/Default/**
