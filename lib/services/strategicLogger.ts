@@ -389,3 +389,4 @@ export const logger = StrategicLogger.getInstance();
 
 // Export factory for custom configurations
 export { StrategicLogger };
+
