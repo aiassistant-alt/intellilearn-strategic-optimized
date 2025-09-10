@@ -111,6 +111,8 @@ export interface NovaConfig {
   systemPrompt?: string
   conversationHistory?: ConversationTurn[]
   isResumeSession?: boolean
+  voiceId?: string
+  customConfiguration?: any
 }
 
 // Interface for conversation history management
@@ -1670,6 +1672,44 @@ Begin by greeting the student and introducing today's lesson on ${config.topic |
         sessionId: session.sessionId, 
         error 
       })
+    }
+  }
+
+  /**
+   * Start Nova Sonic conversation with custom configuration from DynamoDB
+   */
+  async startConversationWithConfig(config: NovaConfig = {}, customConfigId?: string): Promise<string> {
+    try {
+      // Load custom configuration if provided
+      if (customConfigId) {
+        console.log(`🎤 [NovaService] Loading custom configuration: ${customConfigId}`)
+        
+        const { novaConfigService } = await import('./novaConfigService')
+        const customConfig = await novaConfigService.getConfiguration(customConfigId)
+        
+        // Override config with custom settings
+        config = {
+          ...config,
+          systemPrompt: customConfig.systemPrompts.default,
+          voiceId: customConfig.modelConfiguration.voiceId,
+          temperature: customConfig.modelConfiguration.temperature,
+          maxTokens: customConfig.modelConfiguration.maxTokens,
+          customConfiguration: customConfig
+        }
+        
+        console.log(`✅ [NovaService] Custom configuration loaded: ${customConfig.configName}`)
+        console.log(`🎯 [NovaService] Using voice: ${config.voiceId}, temperature: ${config.temperature}`)
+      }
+      
+      // Start conversation with the (potentially modified) config
+      return await this.startExtendedConversation(config)
+      
+    } catch (error) {
+      console.error('❌ [NovaService] Error starting conversation with custom config:', error)
+      
+      // Fallback to regular conversation
+      console.log('🔄 [NovaService] Falling back to default configuration')
+      return await this.startExtendedConversation(config)
     }
   }
 }

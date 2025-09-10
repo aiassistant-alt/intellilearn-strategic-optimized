@@ -11,6 +11,8 @@
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { AWS_CONFIG } from '../config';
+import { awsCredentialsService } from './awsCredentialsService';
 
 // Configuration constants
 const REGION = 'us-east-1';
@@ -22,9 +24,34 @@ let configCache: NovaConfiguration | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
 
-// Initialize DynamoDB client
-const ddbClient = new DynamoDBClient({ region: REGION });
-const docClient = DynamoDBDocumentClient.from(ddbClient);
+// AWS clients variables
+let dynamoClient: DynamoDBClient;
+let docClient: DynamoDBDocumentClient;
+let clientsInitialized = false;
+
+// Function to initialize AWS clients with temporary credentials
+async function initializeAWSClients() {
+  if (clientsInitialized) return;
+  
+  try {
+    console.log('🔧 [NovaConfig] Initializing AWS clients with temporary credentials...');
+    const credentials = await awsCredentialsService.getCredentials();
+    
+    const awsConfig = {
+      region: AWS_CONFIG.region,
+      credentials: credentials
+    };
+    
+    dynamoClient = new DynamoDBClient(awsConfig);
+    docClient = DynamoDBDocumentClient.from(dynamoClient);
+    
+    clientsInitialized = true;
+    console.log('✅ [NovaConfig] AWS clients initialized correctly');
+  } catch (error) {
+    console.error('❌ [NovaConfig] Error initializing AWS clients:', error);
+    throw error;
+  }
+}
 
 /**
  * Nova Sonic Configuration Interface
@@ -129,6 +156,76 @@ export interface NovaConfiguration {
 }
 
 /**
+ * List all Nova Sonic configurations
+ */
+export async function listNovaConfigurations(): Promise<NovaConfiguration[]> {
+  try {
+    console.log('🎤 [NovaConfig] Listing all configurations from DynamoDB');
+    
+    // Initialize AWS clients with credentials
+    await initializeAWSClients();
+    
+    const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
+    
+    const scanCommand = new ScanCommand({
+      TableName: TABLE_NAME
+    });
+    
+    const result: any = await docClient.send(scanCommand);
+    
+    if (!result.Items || result.Items.length === 0) {
+      console.warn('⚠️ [NovaConfig] No configurations found');
+      return [];
+    }
+    
+    const configurations = result.Items as NovaConfiguration[];
+    console.log(`✅ [NovaConfig] Found ${configurations.length} configurations`);
+    
+    return configurations;
+    
+  } catch (error) {
+    console.error('❌ [NovaConfig] Error listing configurations:', error);
+    return [];
+  }
+}
+
+/**
+ * Delete Nova Sonic configuration
+ */
+export async function deleteNovaConfiguration(configId: string): Promise<boolean> {
+  try {
+    // Prevent deletion of default configuration
+    if (configId === DEFAULT_CONFIG_ID) {
+      throw new Error('Cannot delete default configuration');
+    }
+    
+    console.log(`🎤 [NovaConfig] Deleting configuration: ${configId}`);
+    
+    // Initialize AWS clients with credentials
+    await initializeAWSClients();
+    
+    const { DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+    
+    const deleteCommand = new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { configId }
+    });
+    
+    const result: any = await docClient.send(deleteCommand);
+    
+    // Clear cache to force refresh
+    configCache = null;
+    
+    console.log(`✅ [NovaConfig] Configuration deleted successfully: ${configId}`);
+    return true;
+    
+  } catch (error) {
+    console.error('❌ [NovaConfig] Error deleting configuration:', error);
+    throw error;
+  }
+}
+
+/**
  * Get Nova Sonic configuration from DynamoDB with caching
  */
 export async function getNovaConfiguration(configId: string = DEFAULT_CONFIG_ID): Promise<NovaConfiguration> {
@@ -141,6 +238,9 @@ export async function getNovaConfiguration(configId: string = DEFAULT_CONFIG_ID)
     }
     
     console.log(`🎤 [NovaConfig] Fetching configuration from DynamoDB: ${configId}`);
+    
+    // Initialize AWS clients with credentials
+    await initializeAWSClients();
     
     const getCommand = new GetCommand({
       TableName: TABLE_NAME,
@@ -187,6 +287,9 @@ export async function updateNovaConfiguration(configId: string, updates: Partial
       lastUpdated: new Date().toISOString(),
       version: incrementVersion(currentConfig.version)
     };
+    
+    // Initialize AWS clients with credentials
+    await initializeAWSClients();
     
     // Save to DynamoDB
     const putCommand = new PutCommand({
@@ -349,6 +452,8 @@ function incrementVersion(version: string): string {
 export const novaConfigService = {
   getConfiguration: getNovaConfiguration,
   updateConfiguration: updateNovaConfiguration,
+  listConfigurations: listNovaConfigurations,
+  deleteConfiguration: deleteNovaConfiguration,
   getEnvironmentConfig,
   invalidateCache: invalidateConfigCache
 };
