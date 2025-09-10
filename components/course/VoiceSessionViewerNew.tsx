@@ -36,6 +36,16 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const isPlayingRef = useRef(false)
   const isStartingRef = useRef(false) // Prevent double-starting
+  const audioQueueRef = useRef<string[]>([]) // ✅ FIX: Ref for current queue state
+  
+  // ✅ NEW: AWS Official Pattern - concatenate all audio
+  const audioResponseRef = useRef<string>('')
+  const isPlayingResponseRef = useRef(false)
+  
+  // ✅ FIX: Sync ref with state on mount and updates
+  useEffect(() => {
+    audioQueueRef.current = audioQueue
+  }, [audioQueue])
 
   // Parse lesson content for session configuration
   const lessonConfig = useMemo(() => {
@@ -63,6 +73,10 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected')
   const [isSessionActive, setIsSessionActive] = useState(false)
+  
+  // ✅ Extended conversation tracking
+  const [sessionPart, setSessionPart] = useState(1)
+  const [totalSessionTime, setTotalSessionTime] = useState(0)
 
   // Format time display
   const formatTime = (seconds: number) => {
@@ -71,6 +85,98 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
+  // ✅ NEW: AWS Official Pattern - play complete concatenated audio
+  const playCompleteAudio = useCallback(async (audioContent: string) => {
+    if (isPlayingResponseRef.current) {
+      console.log('🎵 Audio response already playing, skipping')
+      return
+    }
+
+    isPlayingResponseRef.current = true
+    console.log('🎵 Playing complete audio response:', audioContent.length, 'characters')
+
+    try {
+      // Convert base64 to PCM16 (AWS official pattern)
+      const bytes = Uint8Array.from(atob(audioContent), c => c.charCodeAt(0))
+      
+      // Check if audio has meaningful content
+      const SILENCE_THRESHOLD = 50
+      let maxAmplitude = 0
+      for (let i = 0; i < bytes.length; i += 2) {
+        const sample = (bytes[i + 1] << 8) | bytes[i]
+        const amplitude = Math.abs(sample > 32767 ? sample - 65536 : sample)
+        if (amplitude > maxAmplitude) maxAmplitude = amplitude
+      }
+      
+      console.log(`🔊 Complete audio analysis: maxAmp=${maxAmplitude}, threshold=${SILENCE_THRESHOLD}`)
+      
+      if (maxAmplitude <= SILENCE_THRESHOLD) {
+        console.log('🔇 Complete audio is silent, skipping playback')
+        isPlayingResponseRef.current = false
+        return
+      }
+
+      // Create WAV from complete audio (AWS pattern)
+      const sampleRate = 24000 // Nova outputs at 24kHz
+      const numChannels = 1
+      const bitsPerSample = 16
+      
+      // Create WAV header
+      const wavHeader = new ArrayBuffer(44)
+      const view = new DataView(wavHeader)
+      
+      // WAV header construction (same as before)
+      view.setUint32(0, 0x52494646, false) // "RIFF"
+      view.setUint32(4, 36 + bytes.length, true) // File size - 8
+      view.setUint32(8, 0x57415645, false) // "WAVE"
+      view.setUint32(12, 0x666d7420, false) // "fmt "
+      view.setUint32(16, 16, true) // PCM format chunk size
+      view.setUint16(20, 1, true) // PCM format
+      view.setUint16(22, numChannels, true) // Channels
+      view.setUint32(24, sampleRate, true) // Sample rate
+      view.setUint32(28, sampleRate * numChannels * bitsPerSample / 8, true) // Byte rate
+      view.setUint16(32, numChannels * bitsPerSample / 8, true) // Block align
+      view.setUint16(34, bitsPerSample, true) // Bits per sample
+      view.setUint32(36, 0x64617461, false) // "data"
+      view.setUint32(40, bytes.length, true) // Data size
+      
+      // Combine header and data
+      const combined = new Uint8Array(44 + bytes.length)
+      combined.set(new Uint8Array(wavHeader), 0)
+      combined.set(bytes, 44)
+      
+      // Create audio blob and play
+      const blob = new Blob([combined], { type: 'audio/wav' })
+      const audioUrl = URL.createObjectURL(blob)
+      const audio = new Audio(audioUrl)
+      
+      audio.onloadedmetadata = () => {
+        console.log('🔊 Complete audio loaded, duration:', audio.duration + 's')
+      }
+
+      audio.onended = () => {
+        console.log('✅ Complete audio playback finished')
+        isPlayingResponseRef.current = false
+        URL.revokeObjectURL(audioUrl)
+      }
+
+      audio.onerror = (error) => {
+        console.error('❌ Complete audio playback error:', error)
+        isPlayingResponseRef.current = false
+        URL.revokeObjectURL(audioUrl)
+      }
+
+      // Play the complete audio
+      console.log('🔊 Starting complete Nova Sonic audio playback...')
+      await audio.play()
+      console.log('✅ Complete audio playback started successfully')
+
+    } catch (error) {
+      console.error('❌ Error processing complete audio:', error)
+      isPlayingResponseRef.current = false
+    }
+  }, [])
+
   // Play audio responses in queue
   const playNextAudio = useCallback(() => {
     if (audioQueue.length === 0 || isPlayingRef.current) {
@@ -78,8 +184,14 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
       return
     }
 
+    console.log(`🎵 Starting playback: ${audioQueue.length} items in queue`)
     const audioData = audioQueue[0]
-    setAudioQueue(prev => prev.slice(1))
+    setAudioQueue(prev => {
+      const newQueue = prev.slice(1)
+      audioQueueRef.current = newQueue // ✅ FIX: Keep ref in sync
+      console.log(`🎵 Queue updated: ${newQueue.length} items remaining`)
+      return newQueue
+    })
     isPlayingRef.current = true
 
     try {
@@ -98,11 +210,11 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
         bytes[i] = binaryString.charCodeAt(i)
       }
 
-      // ✅ FIX CRÍTICO: Ajustar detección de silencio para Nova Sonic  
+      // ✅ FIX CRÍTICO: Optimizar según AWS Nova Sonic workshops
       const pcm16Array = new Int16Array(bytes.buffer)
       let hasAudio = false
       let maxAmplitude = 0
-      const SILENCE_THRESHOLD = 100 // ✅ FIX: Umbral más bajo para Nova Sonic (era 500)
+      const SILENCE_THRESHOLD = 50 // ✅ FIX: Workshop-optimized threshold for 24kHz Nova output
       
       // Calcular amplitud máxima para debugging
       for (let i = 0; i < pcm16Array.length; i++) {
@@ -119,8 +231,13 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
       if (!hasAudio) {
         console.log('🔇 Skipping silent audio chunk')
         isPlayingRef.current = false
-        // ✅ FIX CRÍTICO: NO llamar playNextAudio recursivamente - causa ciclo infinito
-        // En su lugar, simplemente continuar con el siguiente chunk en la cola
+        
+        // ✅ AWS SAMPLE PATTERN: Use requestAnimationFrame to prevent tight loops
+        requestAnimationFrame(() => {
+          if (audioQueue.length > 0) {
+            playNextAudio()
+          }
+        })
         return
       }
 
@@ -169,9 +286,9 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
         console.log('🔊 Nova Sonic audio loaded, ready to play')
         console.log(`📊 Audio duration: ${audio.duration}s`)
         
-        // ✅ FIX CRÍTICO: Nova chunks son 0.06s - cambiar umbral para no saltarlos
-        if (audio.duration < 0.02) {
-          console.log('🔇 Skipping extremely short audio chunk (< 0.02s)')
+        // ✅ FIX: Workshop-optimized minimum duration for Nova Sonic chunks
+        if (audio.duration < 0.01) {
+          console.log('🔇 Skipping extremely short audio chunk (< 0.01s)')
           isPlayingRef.current = false
           URL.revokeObjectURL(audioUrl)
           return
@@ -185,11 +302,13 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
         isPlayingRef.current = false
         URL.revokeObjectURL(audioUrl)
         
-        // Play next audio in queue if any
-        if (audioQueue.length > 0) {
-          console.log(`🎵 Playing next audio (${audioQueue.length} remaining)`)
-          setTimeout(playNextAudio, 100)
-        }
+        // ✅ AWS SAMPLE PATTERN: Use requestAnimationFrame for smooth processing
+        requestAnimationFrame(() => {
+          console.log(`🎵 Checking for next audio...`)
+          if (audioQueue.length > 0) {
+            playNextAudio()
+          }
+        })
       }
 
       audio.onerror = (error) => {
@@ -197,11 +316,13 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
         isPlayingRef.current = false
         URL.revokeObjectURL(audioUrl)
         
-        // Try next audio in queue
-        if (audioQueue.length > 0) {
-          console.log(`⚠️ Trying next audio (${audioQueue.length} remaining)`)
-          setTimeout(playNextAudio, 100)
-        }
+        // ✅ AWS SAMPLE PATTERN: Skip to next without tight loops  
+        requestAnimationFrame(() => {
+          console.log(`⚠️ Trying next audio after error...`)
+          if (audioQueue.length > 0) {
+            playNextAudio()
+          }
+        })
       }
 
       // Play the audio
@@ -238,6 +359,31 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
         case 'textOutput':
           if (eventData.text) {
             console.log('💬 Nova Sonic text response:', eventData.text)
+            
+            // ✅ NEW: Interruption detection based on AWS official samples
+            if (eventData.role === "ASSISTANT" && eventData.text.startsWith("{")) {
+              try {
+                const evt = JSON.parse(eventData.text);
+                if (evt.interrupted === true) {
+                  console.log('🚫 Interruption detected - triggering barge-in')
+                  novaConversationalService.bargeIn(sessionId!)
+                  
+                  // Stop any currently playing audio
+                  if (audioRef.current) {
+                    audioRef.current.pause()
+                    audioRef.current = null
+                  }
+                  
+                  // Clear audio queue to prevent stale playback
+                  setAudioQueue([])
+                  isPlayingRef.current = false
+                  return // Don't process this interrupted text
+                }
+              } catch (e) {
+                // Not JSON, normal text output
+              }
+            }
+            
             setNovaTextResponse(eventData.text)
             setResponseText(eventData.text)
             
@@ -250,28 +396,39 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
           }
           break
         case 'audioOutput':
-          console.log('🔊 New audio response received, adding to queue for automatic playback')
+          console.log('🔊 Audio output received, concatenating (AWS official pattern)')
+          
           if (eventData.content) {
-            console.log('📊 Audio content length:', eventData.content.length)
-            setAudioQueue(prev => {
-              // ✅ FIX: Límite máximo de cola para evitar saturación
-              const MAX_QUEUE_SIZE = 10
-              let newQueue = [...prev, eventData.content]
-              
-              // Si la cola está saturada, eliminar elementos más antiguos
-              if (newQueue.length > MAX_QUEUE_SIZE) {
-                console.warn(`⚠️ Audio queue overflow! Trimming from ${newQueue.length} to ${MAX_QUEUE_SIZE}`)
-                newQueue = newQueue.slice(-MAX_QUEUE_SIZE) // Mantener solo los últimos N elementos
-              }
-              
-              console.log(`🎵 Audio queue updated: ${newQueue.length} items (max: ${MAX_QUEUE_SIZE})`)
-              return newQueue
-            })
+            console.log('📊 Audio content length:', eventData.content.length, 'characters')
+            
+            // ✅ AWS OFFICIAL PATTERN: Concatenate all audio output
+            audioResponseRef.current += eventData.content
+            
+            console.log(`📥 Audio concatenated: ${audioResponseRef.current.length} total characters`)
+            
+            // Add conversation history
+            setConversationHistory(prev => [...prev, {
+              type: 'nova_audio',
+              content: `Audio chunk ${eventData.content.length} chars`,
+              timestamp: new Date()
+            }])
           }
           break
         case 'contentEnd':
           setIsInferenceComplete(true)
           console.log('🎯 Nova Sonic inference complete')
+          
+          // ✅ AWS OFFICIAL PATTERN: Play complete audio on contentEnd
+          if (eventData.type === 'AUDIO' && eventData.stopReason === 'END_TURN') {
+            console.log('🎵 Audio content ended, playing complete concatenated audio...')
+            
+            if (audioResponseRef.current.length > 0) {
+              playCompleteAudio(audioResponseRef.current)
+              audioResponseRef.current = '' // Reset for next response
+            } else {
+              console.log('⚠️ No audio content to play')
+            }
+          }
           break
         case 'turnEnd':
           // Turn ended, Nova is ready for next input
@@ -294,12 +451,8 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
     }
   }, [sessionId])
 
-  // Play audio queue
-  useEffect(() => {
-    if (audioQueue.length > 0 && !isPlayingRef.current) {
-      playNextAudio()
-    }
-  }, [audioQueue, playNextAudio])
+  // ✅ Note: Audio playback now handled via AWS official pattern in contentEnd event
+  // No need for automatic queue processing
 
   // Connection status display
   const getConnectionStatus = () => {
@@ -442,8 +595,8 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
         studentId: lessonConfig.studentId
       })
 
-      // Start Nova Sonic conversation directly
-      const id = await novaConversationalService.startConversation({
+      // ✅ Enhanced: Start extended 20-minute Nova Sonic conversation with automatic resume
+      const id = await novaConversationalService.startExtendedConversation({
         courseId: lessonConfig.courseId,
         topic: lessonConfig.topic,
         studentId: lessonConfig.studentId,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { courseService, Course, Module, Lesson, UserProgress } from '@/lib/services/courseService'
 
 export interface UseCourseResult {
@@ -36,8 +36,8 @@ export function useCourse(courseId: string): UseCourseResult {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Cargar curso inicial
-  const loadCourse = async () => {
+  // ✅ FIX: Memoizar loadCourse para evitar bucle infinito
+  const loadCourse = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -57,7 +57,7 @@ export function useCourse(courseId: string): UseCourseResult {
     } finally {
       setLoading(false)
     }
-  }
+  }, [courseId]) // ✅ FIX: Incluir courseId como dependencia
 
   // Actualizar curso completo
   const updateCourse = async (updates: Partial<Course>) => {
@@ -76,10 +76,10 @@ export function useCourse(courseId: string): UseCourseResult {
     }
   }
 
-  // Refrescar curso
-  const refreshCourse = async () => {
+  // ✅ FIX: Memoizar refreshCourse
+  const refreshCourse = useCallback(async () => {
     await loadCourse()
-  }
+  }, [loadCourse])
 
   // Crear módulo
   const createModule = async (moduleData: { title: string; description: string; order: number }) => {
@@ -244,12 +244,12 @@ export function useCourse(courseId: string): UseCourseResult {
     }
   }
 
-  // Cargar curso al montar el componente
+  // ✅ FIX: Incluir loadCourse en dependencias para evitar stale closure
   useEffect(() => {
     if (courseId) {
       loadCourse()
     }
-  }, [courseId])
+  }, [courseId, loadCourse]) // ✅ FIX: Incluir loadCourse memoizada
 
   return {
     course,

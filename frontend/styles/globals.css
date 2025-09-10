@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* SOLO 2 ARCHIVOS CSS - LIGHT Y DARK */
+@import './light-mode.css';
+@import './dark-mode.css';
+
+/* Configuración base */
+:root {
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Contenedor principal */
+.container-app {
+  padding: 10px 50px;
+}
+
+/* Botones especiales de CognIA */
+.btn-login {
+  border: 1px solid #3C31A3;
+  border-radius: 5px;
+  font-size: 16px;
+  padding: 10px 20px;
+  display: flex;
+  color: #3C31A3;
+}
+
+.btn-header {
+  border: 1px solid #364153;
+  border-radius: 5px;
+  font-size: 16px;
+  padding: 10px 20px;
+}
+
+.btn-header:hover, .btn-login:hover {
+  background-color: #3C31A3;
+  color: #FFFFFF;
+}
+
+.btn-header-gradient {
+  background: linear-gradient(86.79deg, #132944 0%, #3C31A3 111.2%);
+  color: #ffffff;
+  border-radius: 5px;
+  font-size: 16px;
+  padding: 10px 20px;
+}
+
+/* Scrollbar personalizado */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Landing page estilos */
+.bg-gradient-banner {
+  box-shadow: 4px 3px 11.3px 0px rgba(0, 0, 0, 0.14);
+  background: linear-gradient(278.99deg, #192A52 5.06%, #9B93EE 39.26%, #FFFFFF 61.84%);
+  border-radius: 24px;
+}
+
+.textCognIa {
+  background: linear-gradient(90deg, #0D1B2A, #7B61FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-proof {
+  background: linear-gradient(86.79deg, #132944 0%, #3C31A3 111.2%);
+  color: #ffffff;
+  border-radius: 20px;
+  font-size: 16px;
+  padding: 10px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Animación de carrusel */
+@keyframes scroll-carousel {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.carousel-track {
+  display: flex;
+  gap: 1.5rem;
+  width: max-content;
+  animation: scroll-carousel 30s linear infinite;
+}

@@ -44,6 +44,7 @@ const nextConfig = {
     NEXT_PUBLIC_APP_VERSION: '2.0.0',
     NEXT_PUBLIC_AWS_REGION: 'us-east-1',
   },
+  
 }
 
 module.exports = nextConfig

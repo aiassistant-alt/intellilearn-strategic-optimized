@@ -119,3 +119,41 @@ archive/
 **/*cache*/google-chrome/**
 fb[0-9a-f]*_0
 **/Default/**
+
+# Project Structure - Backup/Alternative folders
+# Keep /frontend/ as backup structure but exclude from builds
+# /frontend/ contains duplicate structure for reference only
+
+# Logs and temporary files
+logsnova.txt
+*.log
+
+# Build outputs
+/out/
+/.next/
+/build/
+
+# Dependencies
+/node_modules/
+/.pnp
+.pnp.js
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# AWS
+.aws/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

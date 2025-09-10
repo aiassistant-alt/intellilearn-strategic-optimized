@@ -1,0 +1,398 @@
+/* 
+ * LIGHT MODE - BLANCO NEUMÓRFICO
+ * Archivo único para todos los estilos en modo claro
+ * NO CAMBIAR ESTRUCTURA, SOLO COLORES
+ */
+
+:root {
+  /* Colores CognIA */
+  --cognia-blue-dark: #132944;
+  --cognia-blue-purple: #3C31A3;
+  --cognia-white: #FFFFFF;
+  
+  /* Colores base */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f8f8;
+  --bg-accent: #f0f0f0;
+  --text-primary: #2d3748;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  
+  /* Sombras neumórficas MATE - Sin glow */
+  --shadow-light: rgba(220, 220, 220, 0.8);
+  --shadow-dark: rgba(180, 180, 180, 0.6);
+  --shadow-inset-light: rgba(240, 240, 240, 0.5);
+  --shadow-inset-dark: rgba(200, 200, 200, 0.4);
+}
+
+/* Base */
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Sidebar */
+.neuro-sidebar {
+  background: var(--bg-primary);
+  box-shadow: 
+    15px 0 30px var(--shadow-dark),
+    -5px 0 15px var(--shadow-light);
+}
+
+.neuro-nav-item {
+  background: transparent;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.neuro-nav-item:hover {
+  background: var(--bg-accent);
+  box-shadow: 
+    inset 3px 3px 6px var(--shadow-inset-dark),
+    inset -3px -3px 6px var(--shadow-inset-light);
+}
+
+.neuro-inset {
+  background: var(--bg-secondary);
+  box-shadow: 
+    inset 4px 4px 8px var(--shadow-inset-dark),
+    inset -4px -4px 8px var(--shadow-inset-light);
+}
+
+/* Contenedores neumórficos */
+.neuro-container,
+.neuro-card,
+.nm-card,
+.nm-white-card {
+  background: var(--bg-primary);
+  box-shadow: 
+    10px 10px 20px var(--shadow-dark),
+    -10px -10px 20px var(--shadow-light);
+  border-radius: 12px;
+}
+
+/* Inputs */
+.neuro-input,
+.nm-input,
+.nm-white-input {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid #f0f0f0;
+  box-shadow: 
+    inset 3px 3px 6px var(--shadow-inset-dark),
+    inset -3px -3px 6px var(--shadow-inset-light);
+}
+
+.neuro-input:focus,
+.nm-input:focus,
+.nm-white-input:focus {
+  outline: none;
+  box-shadow: 
+    inset 4px 4px 8px var(--shadow-inset-dark),
+    inset -4px -4px 8px var(--shadow-inset-light);
+}
+
+/* Botones */
+.neuro-button,
+.nm-button,
+.nm-white-button {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: 
+    5px 5px 10px var(--shadow-dark),
+    -5px -5px 10px var(--shadow-light);
+  border: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.neuro-button-primary,
+.nm-button-primary,
+.nm-white-button-primary {
+  background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+  color: var(--text-primary);
+  box-shadow: 
+    5px 5px 10px var(--shadow-dark),
+    -5px -5px 10px var(--shadow-light);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.neuro-button:hover,
+.nm-button:hover,
+.nm-white-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    7px 7px 14px var(--shadow-dark),
+    -7px -7px 14px var(--shadow-light);
+}
+
+.neuro-button:active,
+.nm-button:active,
+.nm-white-button:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 3px 3px 6px var(--shadow-inset-dark),
+    inset -3px -3px 6px var(--shadow-inset-light);
+}
+
+/* Badges */
+.neuro-badge,
+.nm-badge,
+.nm-white-badge {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: 
+    3px 3px 6px var(--shadow-dark),
+    -3px -3px 6px var(--shadow-light);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+/* Progress bars */
+.neuro-progress,
+.nm-progress,
+.nm-white-progress {
+  background: var(--bg-accent);
+  box-shadow: 
+    inset 2px 2px 4px var(--shadow-inset-dark),
+    inset -2px -2px 4px var(--shadow-inset-light);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.neuro-progress-fill,
+.nm-progress-fill,
+.nm-white-progress-fill {
+  background: linear-gradient(90deg, #d0d0d0, #b0b0b0);
+  height: 100%;
+  border-radius: 4px;
+}
+
+/* Avatar */
+.neuro-avatar {
+  background: linear-gradient(135deg, #f8f8f8, #e8e8e8);
+  box-shadow: 
+    4px 4px 8px var(--shadow-dark),
+    -4px -4px 8px var(--shadow-light);
+}
+
+/* Modales */
+.neuro-modal,
+.nm-modal,
+.nm-white-modal {
+  background: var(--bg-primary);
+  box-shadow: 
+    20px 20px 40px var(--shadow-dark),
+    -20px -20px 40px var(--shadow-light);
+  border-radius: 16px;
+}
+
+/* Secciones */
+.neuro-section,
+.nm-section,
+.nm-white-section,
+.nm-white-info-box,
+.nm-white-summary-card {
+  background: var(--bg-primary);
+  box-shadow: 
+    8px 8px 16px var(--shadow-dark),
+    -8px -8px 16px var(--shadow-light);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* Iconos */
+.neuro-icon-box,
+.nm-icon-box,
+.nm-white-icon-box,
+.nm-white-icon-large {
+  background: var(--bg-primary);
+  box-shadow: 
+    6px 6px 12px var(--shadow-dark),
+    -6px -6px 12px var(--shadow-light);
+  border-radius: 50%;
+}
+
+/* Upload area */
+.neuro-upload-area,
+.nm-upload-area,
+.nm-white-upload-area {
+  background: var(--bg-primary);
+  box-shadow: 
+    inset 4px 4px 8px var(--shadow-inset-dark),
+    inset -4px -4px 8px var(--shadow-inset-light);
+  border: 2px dashed #e0e0e0;
+  border-radius: 12px;
+}
+
+/* Tablas */
+table {
+  background: var(--bg-primary);
+}
+
+thead {
+  background: var(--bg-secondary);
+}
+
+tbody {
+  background: var(--bg-primary);
+}
+
+th, td {
+  color: var(--text-primary);
+  border-color: var(--bg-accent);
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+}
+
+/* Textos */
+p, span, div, label {
+  color: var(--text-primary);
+}
+
+.text-gray-400,
+.text-gray-500,
+.text-gray-600 {
+  color: var(--text-muted);
+}
+
+/* Links */
+a {
+  color: var(--cognia-blue-purple);
+}
+
+a:hover {
+  color: var(--cognia-blue-dark);
+}
+
+/* Bordes */
+* {
+  border-color: var(--bg-accent);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  box-shadow: inset 3px 3px 6px var(--shadow-inset-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-accent);
+  border-radius: 6px;
+  box-shadow: 
+    inset -2px -2px 4px var(--shadow-inset-dark),
+    inset 2px 2px 4px var(--shadow-inset-light);
+}
+
+/* Theme toggle */
+.neuro-theme-toggle,
+.neuro-theme-toggle-button {
+  background: var(--bg-primary);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    6px 6px 12px var(--shadow-dark),
+    -6px -6px 12px var(--shadow-light);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-primary);
+}
+
+.neuro-theme-toggle-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    8px 8px 16px var(--shadow-dark),
+    -8px -8px 16px var(--shadow-light);
+}
+
+.neuro-theme-toggle-button:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 3px 3px 6px var(--shadow-inset-dark),
+    inset -3px -3px 6px var(--shadow-inset-light);
+}
+
+/* Voice button - BLANCO NEOMORFICO */
+.voice-button-nm,
+.nm-voice-button {
+  background: var(--bg-primary);
+  box-shadow: 
+    15px 15px 30px var(--shadow-dark),
+    -15px -15px 30px var(--shadow-light);
+}
+
+.nm-voice-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    18px 18px 36px var(--shadow-dark),
+    -18px -18px 36px var(--shadow-light);
+}
+
+.nm-voice-button:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 10px 10px 20px var(--shadow-inset-dark),
+    inset -10px -10px 20px var(--shadow-inset-light);
+}
+
+/* Tornasol/Iridescent center for light mode */
+.nm-voice-button::before,
+.nm-voice-iridescent {
+  content: '';
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    #FF007F 0deg,
+    #FF00FF 45deg,
+    #8B00FF 90deg,
+    #0080FF 135deg,
+    #00D4FF 180deg,
+    #00FF94 225deg,
+    #FFD700 270deg,
+    #FF5E00 315deg,
+    #FF007F 360deg
+  );
+  filter: blur(12px);
+  opacity: 0.7;
+  animation: rotate-gradient 4s linear infinite;
+  z-index: 0;
+}
+
+/* Voice icon in light mode */
+.nm-voice-icon {
+  color: var(--text-primary);
+  z-index: 2;
+  position: relative;
+}
+
+/* Eliminamos TODO glow/text-shadow */
+* {
+  text-shadow: none !important;
+}
+
+/* Keyframe for rotating iridescent gradient */
+@keyframes rotate-gradient {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

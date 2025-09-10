@@ -83,11 +83,19 @@ export interface NovaConversationSession {
   lastFrameTs?: number  // ✅ FIX: Timestamp real del AudioWorklet para VAD preciso
   _pacer?: NodeJS.Timeout  // ✅ FIX B: Timer para pacing estable
   vadLogCounter?: number  // Strategic logging counter to prevent VAD spam
+  audioSendCounter?: number  // Strategic logging counter for audio sends
   
   // Educational context
   courseId?: string
   topic?: string
   studentId?: string
+  
+  // Conversation resume tracking
+  conversationHistory?: ConversationTurn[]
+  sessionStartTime?: Date
+  isResumeSession?: boolean
+  sessionNumber?: number  // 1, 2, 3... for 20-min conversation tracking
+  isRestarting?: boolean  // Prevent multiple restart loops
   
   // Timers - ✅ FIX #5: Browser-compatible timer types
   initialSilenceTimer?: ReturnType<typeof setTimeout>
@@ -101,6 +109,16 @@ export interface NovaConfig {
   topic?: string
   studentId?: string
   systemPrompt?: string
+  conversationHistory?: ConversationTurn[]
+  isResumeSession?: boolean
+}
+
+// Interface for conversation history management
+export interface ConversationTurn {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+  type: 'text' | 'audio'
 }
 
 class NovaConversationalService {
@@ -126,6 +144,13 @@ class NovaConversationalService {
             this.buffer = [];
             this.frameCount = 0;
             this.lastLogTime = 0;
+            
+            // ✅ NEW: Handle barge-in messages from main thread
+            this.port.onmessage = (event) => {
+              if (event.data.type === 'barge-in') {
+                this.handleBargeIn();
+              }
+            };
           }
 
           process(inputs, outputs, parameters) {
@@ -136,8 +161,8 @@ class NovaConversationalService {
             // Last Modified: 2025-09-10 by Luis Arturo Parra
             // Usage: Prevents console spam while maintaining audio pipeline visibility
             // Enhancement: Add audio quality metrics, buffer health monitoring
-            if (this.frameCount % 300 === 0) { // Reduced frequency: every ~9 seconds
-              logger.audio('AudioWorklet health check', {
+            if (this.frameCount % 500 === 0) { // Further reduced: every ~15 seconds
+              console.log('🎤 AudioWorklet health check', {
                 frameCount: this.frameCount,
                 hasInput: !!input,
                 inputChannels: input?.length || 0,
@@ -161,10 +186,10 @@ class NovaConversationalService {
               // Last Modified: 2025-09-10 by Luis Arturo Parra
               // Usage: Strategic first-samples logging to verify audio pipeline
               // Enhancement: Add audio level analysis, mic calibration suggestions
-              if (this.frameCount <= 3) { // Reduced from 5 to 3 samples
-                logger.audio('Initial audio samples captured', {
+              if (this.frameCount === 1) { // Only log first sample to avoid spam
+                console.log('🎤 Initial audio samples captured', {
                   frameCount: this.frameCount,
-                  samplePreview: samples.slice(0, 5), // Reduced preview size
+                  samplePreview: samples.slice(0, 3), // Further reduced preview
                   channelMode: ch1 ? 'stereo-downmixed' : 'mono'
                 });
               }
@@ -179,7 +204,7 @@ class NovaConversationalService {
               // Usage: One-time notification of resampling requirements
               // Enhancement: Add resampling quality metrics, performance monitoring
               if (this.frameCount === 1 && Math.abs(inputRate - targetRate) > 1) {
-                logger.audio('Resampling required', {
+                console.log('🎤 Resampling required', {
                   inputRate,
                   targetRate,
                   resamplingRatio: inputRate / targetRate
@@ -226,7 +251,14 @@ class NovaConversationalService {
             
             return true; // Keep processor alive
           }
+          
+          // ✅ NEW: Barge-in mechanism basado en samples oficiales AWS
+          handleBargeIn() {
+            console.log('🚫 Barge-in triggered - stopping audio processing');
+            this.buffer = []; // Clear audio buffer to stop processing
+          }
         }
+        
         
         registerProcessor('pcm16-processor', PCM16Processor);
       `
@@ -267,16 +299,47 @@ class NovaConversationalService {
   }
 
   /**
-   * ✅ FIX B: Pacer estable para envío constante (no ráfagas)
+   * ✅ ENHANCED: Intelligent pacer with saturation control based on AWS samples
+   * Author: Luis Arturo Parra - Telmo AI
+   * Created: 2025-09-10
+   * Usage: Prevents audio buffer overflow and console spam
+   * Business Context: Critical for stable Nova Sonic performance
+   * Relations: Works with pumpTx for controlled audio flow
+   * Reminders: Monitor performance metrics for optimization
    */
   private startPacer(session: NovaConversationSession) {
     if (session._pacer) return
-    session._pacer = setInterval(() => this.pumpTx(session), PACER_MS)
-    // Context: Audio pacing system initialization for stable event flow
-    // Last Modified: 2025-09-10 by Luis Arturo Parra
-    // Usage: Strategic audio pacing to prevent Nova Sonic buffer overflow
-    // Enhancement: Adaptive pacing based on network conditions, latency monitoring
-    logger.audio('Audio pacer started', { targetRate: '8-10 events/s' });
+    
+    let consecutiveEmptyPumps = 0
+    const maxEmptyPumps = 10 // Reduce frequency when idle
+    
+    session._pacer = setInterval(() => {
+      const hadData = this.pumpTx(session)
+      
+      if (!hadData) {
+        consecutiveEmptyPumps++
+        // Adaptive: slow down when no data to prevent unnecessary cycles
+        if (consecutiveEmptyPumps >= maxEmptyPumps) {
+          // Temporarily extend interval when idle
+          clearInterval(session._pacer!)
+          session._pacer = setInterval(() => this.pumpTx(session), PACER_MS * 2)
+          consecutiveEmptyPumps = 0
+        }
+      } else {
+        consecutiveEmptyPumps = 0
+        // Reset to normal frequency when active
+        if (session._pacer) {
+          clearInterval(session._pacer)
+          session._pacer = setInterval(() => this.pumpTx(session), PACER_MS)
+        }
+      }
+    }, PACER_MS)
+    
+    logger.audio('Intelligent pacer started', { 
+      intervalMs: PACER_MS, 
+      adaptiveMode: true,
+      targetSamples: TARGET_SAMPLES 
+    })
   }
 
   private stopPacer(session: NovaConversationSession) {
@@ -292,12 +355,13 @@ class NovaConversationalService {
   }
 
   /**
-   * ✅ FIX B: Pump estable - envía cuando hay TARGET_SAMPLES listos
+   * ✅ ENHANCED: Smart pump with data indication for adaptive pacing
+   * Fixed: Returns boolean to indicate if data was processed
    */
-  private pumpTx(session: NovaConversationSession) {
-    if (!session.isActive || !session.isRecording) return
-    if (!session.txHold || session.txHold.length < TARGET_SAMPLES) return
-    if (session.eventQueue.length >= MAX_EVENT_QUEUE) return // respeta back-pressure
+  private pumpTx(session: NovaConversationSession): boolean {
+    if (!session.isActive || !session.isRecording) return false
+    if (!session.txHold || session.txHold.length < TARGET_SAMPLES) return false
+    if (session.eventQueue.length >= MAX_EVENT_QUEUE) return false // respeta back-pressure
 
     const frame = session.txHold.subarray(0, TARGET_SAMPLES)
     session.txHold = session.txHold.subarray(TARGET_SAMPLES)
@@ -324,6 +388,8 @@ class NovaConversationalService {
       bytes: frame.byteLength,
       timestamp: Date.now()
     });
+    
+    return true // Data was processed successfully
   }
 
   /**
@@ -349,6 +415,8 @@ class NovaConversationalService {
     
     console.log(`[NOVA] ⇢ audioInput (flush) bytes=${base64Audio.length}`)
     session.txHold = null
+    
+    return true // Data was processed
   }
 
   /**
@@ -468,7 +536,32 @@ class NovaConversationalService {
   }
   
   /**
+   * ✅ NEW: Barge-in mechanism based on AWS official samples
+   * Author: Luis Arturo Parra - Telmo AI
+   * Created: 2025-09-10
+   * Usage: Interrupt AI audio playback when user starts speaking
+   * Business Context: Prevents audio conflicts and improves UX
+   * Relations: Used by VoiceSessionViewerNew for interruption handling
+   * Reminders: Critical for natural conversation flow
+   */
+  public bargeIn(sessionId: string): void {
+    const session = this.sessions.get(sessionId)
+    if (!session?.audioWorklet) return
+    
+    logger.audio('Barge-in triggered', { sessionId, hasWorklet: !!session.audioWorklet })
+    
+    // Send barge-in message to AudioWorklet
+    session.audioWorklet.port.postMessage({
+      type: 'barge-in'
+    })
+    
+    // Stop any current audio transmission
+    this.endTurn(session, 'barge_in')
+  }
+
+  /**
    * ✅ FIX B: Acumular audio para pacing estable
+   * Fixed: Strategic logging to prevent console spam
    */
   private accumulateAudioForPacing(session: NovaConversationSession, pcm16Buffer: Int16Array) {
     if (!session.txHold) {
@@ -481,7 +574,17 @@ class NovaConversationalService {
       session.txHold = combined
     }
     
-    console.log(`📦 Audio accumulated: ${session.txHold.length} samples total`)
+    // ✅ FIX: Strategic logging - solo cada 10 acumulaciones para evitar spam
+    if (!session.vadLogCounter) session.vadLogCounter = 0
+    session.vadLogCounter++
+    
+    if (session.vadLogCounter % 10 === 0 || session.txHold.length >= 1600) {
+      logger.audio(`Audio accumulated`, {
+        samples: session.txHold.length,
+        batchNumber: Math.floor(session.vadLogCounter / 10),
+        targetReached: session.txHold.length >= 1600
+      })
+    }
   }
 
   /**
@@ -534,7 +637,17 @@ class NovaConversationalService {
         }
       })
       
-      console.log(`[NOVA] ⇢ audioInput bytes=${base64Audio.length}`)
+      // ✅ ENHANCED: Use strategicLogger for consolidated logging
+      if (!session.audioSendCounter) session.audioSendCounter = 0
+      session.audioSendCounter++
+      
+      if (session.audioSendCounter % 5 === 0) {
+        logger.stream(`Audio batch sent to Nova`, {
+          batchNumber: Math.floor(session.audioSendCounter / 5),
+          bytes: base64Audio.length,
+          sessionId: session.sessionId
+        })
+      }
       
       // Update buffer
       session.txHold = rest.length ? new Int16Array(rest) : null
@@ -679,7 +792,10 @@ class NovaConversationalService {
               inferenceConfiguration: {
                 maxTokens: config.maxTokens || 1024,
                 topP: 0.9,
-                temperature: config.temperature || 0.7
+                temperature: config.temperature || 0.7,
+                // ✅ ENHANCED: Force response generation
+                frequencyPenalty: 0.0,
+                presencePenalty: 0.0
               }
             }
           }
@@ -725,7 +841,31 @@ class NovaConversationalService {
           }
         })
         
-        const systemPrompt = config.systemPrompt || `You are Nova, a friendly AI voice assistant. You MUST immediately speak and greet the user when this conversation starts. Say hello and ask how you can help them today. Then, respond with speech to every user input. Keep responses short (1-2 sentences). Always speak back to the user - never stay silent. ${config.courseId ? `The student is studying course: ${config.courseId}.` : ''} ${config.topic ? `Current topic: ${config.topic}.` : ''}`
+        // ✅ ENHANCED: Strong system prompt based on AWS samples for guaranteed response
+        const systemPrompt = config.systemPrompt || `You are Nova, a friendly AI tutor who ALWAYS responds with voice immediately.
+
+MANDATORY BEHAVIOR:
+- You MUST respond with speech to every input
+- Start speaking immediately when prompted
+- Never stay silent or wait
+- Speak in a warm, educational tone
+- Keep responses brief but helpful (2-3 sentences)
+- Always engage the student with questions or encouragement
+
+EDUCATIONAL CONTEXT:${config.courseId ? `\n- Course: ${config.courseId}` : ''}${config.topic ? `\n- Current Topic: ${config.topic}` : ''}${config.studentId ? `\n- Student ID: ${config.studentId}` : ''}
+
+${config.isResumeSession && config.conversationHistory?.length ? 
+`CONVERSATION CONTINUATION:
+This is a continuation of an ongoing educational session. Here's what we've discussed so far:
+
+${config.conversationHistory.slice(-10).map(turn => {
+  const speaker = turn.role === 'user' ? 'Student' : 'Tutor (You)'
+  return `${speaker}: ${turn.content}`
+}).join('\n')}
+
+Please continue the lesson naturally from where we left off, maintaining the same teaching flow and building upon what we've already covered.` :
+`SESSION START:
+Begin by greeting the student and introducing today's lesson on ${config.topic || 'the selected topic'}. Ask if they're ready to begin.`}`
         
         console.log('[NOVA] ⇢ textInput system prompt')
         yield toChunk({
@@ -773,7 +913,7 @@ class NovaConversationalService {
             textInput: {
               promptName: session.promptName,
               contentName: kickContentName,
-              content: "Hola"  // ✅ FIX #1: Mejor que espacio en blanco para evitar recortes
+              content: "Hi Nova! I'm ready to learn. Please introduce yourself and start teaching me right now. Speak to me!"  // Stronger command to guarantee voice response
             }
           }
         })
@@ -829,10 +969,13 @@ class NovaConversationalService {
           // Log the event being sent
           const eventType = Object.keys(queueEvent.event)[0]
           if (eventType === 'audioInput') {
-            // Don't log full audio data
-            console.log(`[NOVA] ⇢ audioInput bytes=${queueEvent.event.audioInput.content.length}`)
+            // Use strategic logger for audio events
+            logger.stream(`Sending audioInput event`, {
+              bytes: queueEvent.event.audioInput.content.length,
+              eventType
+            })
           } else {
-            console.log(`[NOVA] ⇢ ${eventType}`, queueEvent.event[eventType])
+            logger.stream(`Sending ${eventType} event`, queueEvent.event[eventType])
           }
           
           yield toChunk(queueEvent)
@@ -1000,26 +1143,47 @@ class NovaConversationalService {
                 console.log('🏁 Nova completion ended:', jsonResponse.event.completionEnd.stopReason)
                 this.dispatchEvent(session.sessionId, 'completionEnd', jsonResponse.event.completionEnd)
                 
-                // ✅ GATING CORRECTO: Auto-restart solo después de completionEnd (turno realmente terminado)
-                if (session.isActive && !session.isRecording) {
-                  console.log('🔄 Completion ended - conditions met for auto-restart')
-                  setTimeout(() => {
-                    console.log('🔄 AUTO-RESTART: Starting audio capture for next turn')
+                // ✅ ENHANCED: Controlled auto-restart based on AWS samples pattern
+                // Only auto-restart if explicitly enabled and not in a restart loop
+                if (session.isActive && !session.isRecording && !session.isRestarting) {
+                  session.isRestarting = true // Prevent multiple restarts
+                  
+          logger.stream('Completion ended - preparing controlled restart', {
+            sessionId: session.sessionId,
+            isActive: session.isActive,
+            isRecording: session.isRecording
+          })
+                  
+                  // Use requestAnimationFrame for better timing than setTimeout
+                  requestAnimationFrame(() => {
+                    // Double-check conditions before restart
+                    if (!session.isActive || session.isRecording) {
+                      session.isRestarting = false
+                      return
+                    }
                     
-                    // Generate new IDs for next turn (NO promptStart - mantener el mismo prompt)
+                    logger.stream('Starting controlled restart', {
+                      sessionId: session.sessionId,
+                      promptName: session.promptName
+                    })
+                    
+                    // Generate new IDs for next turn
                     session.contentName = `content_${Date.now()}`
                     session.audioContentName = `audio_content_${Date.now()}`
                     
-                    console.log(`  - Keeping prompt: ${session.promptName}`)
-                    console.log(`  - New content: ${session.contentName}`)
-                    console.log(`  - New audio content: ${session.audioContentName}`)
-                    
                     this.startAudioCapture(session.sessionId).catch(err => {
-                      console.error('❌ Failed to restart audio capture:', err)
+                      logger.error('Failed to restart audio capture', { sessionId: session.sessionId, error: err })
+                      session.isRestarting = false
+                    }).finally(() => {
+                      session.isRestarting = false
                     })
-                  }, 600) // Small delay to ensure Nova has finished processing
+                  })
                 } else {
-                  console.log(`⚠️ Not auto-restarting after completion: Active=${session.isActive}, Recording=${session.isRecording}`)
+                  logger.stream('Skipping auto-restart', {
+                    isActive: session.isActive,
+                    isRecording: session.isRecording,
+                    isRestarting: session.isRestarting || false
+                  })
                 }
                 break
                 
@@ -1273,10 +1437,8 @@ class NovaConversationalService {
       session.isActive = false
       session.isStreamComplete = true
 
-      // Close audio context
-      if (session.audioContext) {
-        await session.audioContext.close()
-      }
+      // ✅ ENHANCED: Comprehensive cleanup using AWS samples pattern
+      this.cleanupSessionResources(session)
 
       // ✅ FIX #3: No resolver null inmediatamente - deja que el generador drene
       // El drain-safe closure se encarga de terminar cuando queue.length === 0
@@ -1287,7 +1449,7 @@ class NovaConversationalService {
       // Remove session
       this.sessions.delete(sessionId)
 
-      console.log('✅ Nova Sonic conversation ended')
+      logger.stream('Nova Sonic conversation ended successfully', { sessionId })
 
     } catch (error) {
       console.error('❌ Error ending conversation:', error)
@@ -1307,6 +1469,209 @@ class NovaConversationalService {
    * to avoid double playback and improve performance. 
    * The service only dispatches audioOutput events via dispatchEvent().
    */
+
+  /**
+   * ✅ NEW: Build educational system prompt with conversation history support
+   * Enhanced for 20-minute teaching sessions with seamless resume capability
+   */
+  private buildEducationalSystemPrompt(config: NovaConfig): string {
+    const basePrompt = config.systemPrompt || `You are Nova, an expert AI tutor specializing in personalized education. You provide clear, engaging, and interactive voice lessons.
+
+CORE BEHAVIOR:
+- ALWAYS respond with speech - never stay silent
+- Keep responses conversational and educational (2-3 sentences)
+- Ask follow-up questions to ensure understanding
+- Adapt your teaching style to the student's responses
+- Be encouraging and supportive
+
+EDUCATIONAL CONTEXT:${config.courseId ? `\n- Course: ${config.courseId}` : ''}${config.topic ? `\n- Current Topic: ${config.topic}` : ''}${config.studentId ? `\n- Student ID: ${config.studentId}` : ''}`
+
+    // Add conversation history if this is a resume session
+    if (config.isResumeSession && config.conversationHistory?.length) {
+      const historyPrompt = this.buildConversationHistoryPrompt(config.conversationHistory)
+      return `${basePrompt}
+
+CONVERSATION CONTINUATION:
+This is a continuation of an ongoing educational session. Here's what we've discussed so far:
+
+${historyPrompt}
+
+Please continue the lesson naturally from where we left off, maintaining the same teaching flow and building upon what we've already covered.`
+    }
+
+    return `${basePrompt}
+
+SESSION START:
+Begin by greeting the student and introducing today's lesson on ${config.topic || 'the selected topic'}. Ask if they're ready to begin.`
+  }
+
+  /**
+   * ✅ NEW: Build conversation history prompt from previous turns
+   */
+  private buildConversationHistoryPrompt(history: ConversationTurn[]): string {
+    const recentHistory = history.slice(-10) // Last 10 turns for context
+    return recentHistory.map(turn => {
+      const speaker = turn.role === 'user' ? 'Student' : 'Tutor (You)'
+      return `${speaker}: ${turn.content}`
+    }).join('\n')
+  }
+
+  /**
+   * ✅ NEW: Resume conversation for 20-minute sessions (continuation pattern)
+   */
+  async resumeConversation(previousSessionId: string, config: NovaConfig = {}): Promise<string> {
+    try {
+      console.log('🔄 Resuming Nova Sonic conversation for 20-min session...')
+      
+      // Get conversation history from previous session
+      const previousSession = this.sessions.get(previousSessionId)
+      if (previousSession?.conversationHistory) {
+        config.conversationHistory = previousSession.conversationHistory
+        config.isResumeSession = true
+      }
+
+      // Start new session with history
+      const newSessionId = await this.startConversation(config)
+      
+      // Transfer session number tracking
+      const newSession = this.sessions.get(newSessionId)
+      if (newSession && previousSession) {
+        newSession.sessionNumber = (previousSession.sessionNumber || 1) + 1
+        newSession.conversationHistory = previousSession.conversationHistory || []
+        console.log(`✅ Session resumed: Part ${newSession.sessionNumber} of extended conversation`)
+      }
+
+      return newSessionId
+    } catch (error) {
+      console.error('❌ Failed to resume Nova Sonic conversation:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ NEW: Start extended 20-minute conversation with automatic resume
+   */
+  async startExtendedConversation(config: NovaConfig = {}): Promise<string> {
+    try {
+      console.log('🚀 Starting extended 20-minute Nova Sonic conversation...')
+      
+      // Initialize first session
+      const sessionId = await this.startConversation(config)
+      const session = this.sessions.get(sessionId)
+      
+      if (session) {
+        session.sessionStartTime = new Date()
+        session.sessionNumber = 1
+        session.conversationHistory = []
+        
+        // Set up automatic resume at 7.5 minutes (before 8-min limit)
+        setTimeout(async () => {
+          if (session.isActive) {
+            console.log('⏰ Approaching 8-minute limit, preparing seamless resume...')
+            try {
+              const resumedSessionId = await this.resumeConversation(sessionId, config)
+              console.log(`🔄 Seamlessly resumed conversation: ${sessionId} → ${resumedSessionId}`)
+              
+              // Set up second resume at 15.5 minutes for full 20-minute support
+              setTimeout(async () => {
+                const finalSession = this.sessions.get(resumedSessionId)
+                if (finalSession?.isActive) {
+                  console.log('⏰ Preparing final resume for 20-minute completion...')
+                  await this.resumeConversation(resumedSessionId, config)
+                }
+              }, 7.5 * 60 * 1000) // 7.5 minutes later
+              
+            } catch (error) {
+              console.error('❌ Failed to resume conversation automatically:', error)
+            }
+          }
+        }, 7.5 * 60 * 1000) // 7.5 minutes
+      }
+
+      return sessionId
+    } catch (error) {
+      console.error('❌ Failed to start extended conversation:', error)
+      throw error
+    }
+  }
+
+  /**
+   * ✅ NEW: Comprehensive session cleanup based on AWS official samples
+   * Author: Luis Arturo Parra - Telmo AI
+   * Created: 2025-09-10
+   * Usage: Prevents memory leaks and resource conflicts
+   * Business Context: Critical for app stability during extended use
+   * Relations: Used by endConversation for complete resource cleanup
+   * Reminders: Follow AWS samples pattern for proper cleanup
+   */
+  private cleanupSessionResources(session: NovaConversationSession): void {
+      logger.stream('Starting comprehensive session cleanup', { 
+        sessionId: session.sessionId,
+        hasAudioContext: !!session.audioContext,
+        hasWorklet: !!session.audioWorklet,
+        hasSource: !!session.source
+      })
+
+    try {
+      // 1. Disconnect audio processing chain (order matters!)
+      if (session.audioWorklet) {
+        session.audioWorklet.disconnect()
+        session.audioWorklet = undefined
+      }
+
+      if (session.source) {
+        session.source.disconnect()
+        session.source = undefined
+      }
+
+      // 2. Stop all media stream tracks (critical for mic release)
+      // Note: MediaStreamAudioSourceNode doesn't expose mediaStream directly
+      // Tracks are managed by the browser's getUserMedia lifecycle
+
+      // 3. Close audio context
+      if (session.audioContext) {
+        if (session.audioContext.state !== 'closed') {
+          session.audioContext.close().catch(err => {
+            logger.error('Error closing AudioContext', { error: err })
+          })
+        }
+        session.audioContext = undefined
+      }
+
+      // 4. Clear timers
+      if (session.initialSilenceTimer) {
+        clearTimeout(session.initialSilenceTimer)
+        session.initialSilenceTimer = undefined
+      }
+
+      if (session.vadSilenceTimer) {
+        clearTimeout(session.vadSilenceTimer)
+        session.vadSilenceTimer = undefined
+      }
+
+      // 5. Stop pacer
+      this.stopPacer(session)
+
+      // 6. Clear buffers
+      session.txHold = null
+      session.eventQueue = []
+
+      // 7. Reset flags
+      session.workletRegistered = false
+      session.hasAudioContent = false
+      session.isRestarting = false
+
+      logger.stream('Session cleanup completed successfully', { 
+        sessionId: session.sessionId 
+      })
+
+    } catch (error) {
+      logger.error('Error during session cleanup', { 
+        sessionId: session.sessionId, 
+        error 
+      })
+    }
+  }
 }
 
 // Export singleton instance

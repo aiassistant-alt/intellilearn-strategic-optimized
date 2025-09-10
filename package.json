@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/copy-assets.js",
+    "prebuild": "node infrastructure/deployment/copy-assets.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prepare-assets": "node scripts/copy-assets.js",
+    "prepare-assets": "node infrastructure/deployment/copy-assets.js",
     "deploy": "bash migration/deploy-to-aws.sh",
     "setup": "bash migration/setup-complete-infrastructure.sh",
     "update-config": "python3 migration/update-project-configs.py"

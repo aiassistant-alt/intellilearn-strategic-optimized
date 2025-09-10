@@ -86,7 +86,10 @@ class PCM16Processor extends AudioWorkletProcessor {
         samples: this.postSize
       }, [pcm16.buffer]);
       
-      console.log(`🎤 Stable chunk sent: ${this.postSize} samples @ ${currentTime}s (rms: ${this.lastRms.toFixed(4)})`);
+      // Strategic logging: reduce spam in AudioWorklet
+      if (this.frameCount % 10 === 0) {
+        console.log(`🎤 Stable chunk sent: ${this.postSize} samples @ ${currentTime}s (rms: ${this.lastRms.toFixed(4)})`);
+      }
     }
   }
 

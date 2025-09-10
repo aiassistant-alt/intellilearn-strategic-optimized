@@ -1,0 +1,143 @@
+.bg-gradient-banner {
+  box-shadow: 4px 3px 11.3px 0px rgba(0, 0, 0, 0.14);
+  background: linear-gradient(278.99deg, #192A52 5.06%, #9B93EE 39.26%, #FFFFFF 61.84%);
+  border-radius: 24px;
+}
+
+.textCognIa {
+  background: linear-gradient(90deg, #0D1B2A, #7B61FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-proof {
+  background: linear-gradient(86.79deg, #132944 0%, #3C31A3 111.2%);
+  color: #ffffff;
+  border-radius: 20px;
+  font-size: 16px;
+  padding: 10px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bg-item {
+  border-radius: 16px;
+  gap: 10px;
+  background-color: rgba(233, 230, 255, 1);
+  box-shadow: 4px 3px 11.3px 0px rgba(0, 0, 0, 0.14);
+  color: rgba(60, 49, 163, 1);
+  padding: 20px;
+}
+
+.icon-item {
+  width: 57px;
+  height: 57px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 28px;
+}
+
+.textCognIA {
+  font-weight: 800;
+  font-size: 59px;
+  line-height: 59px;
+  padding: 10px 117px;
+  background: linear-gradient(to right, #132944, #3C31A3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.wrappItem {
+  border: 1px solid #364153;
+  border-radius: 16px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.14);
+  padding: 20px;
+  color: rgba(19, 41, 68, 1);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.testimonialItem {
+  width: 463px;
+  height: 139px;
+  border-radius: 16px;
+  box-shadow: 4px 3px 11.3px 0px rgba(0, 0, 0, 0.14);
+  background-color: rgba(239, 239, 239, 1);
+  padding: 10px;
+  display: flex;
+}
+
+.icon-testimonial {
+  width: 37px;
+  height: 37px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  font-size: 17px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes scroll-carousel {
+  0% {
+    transform: translateX(0%);
+  }
+  
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.carousel-track {
+  display: flex;
+  gap: 1.5rem;
+  width: max-content;
+  animation: scroll-carousel 30s linear infinite;
+}
+
+.circle-blur {
+  width: 224px;
+  height: 430px;
+  border-radius: 50%;
+  /* Para que se vea como una elipse */
+  background-color: rgba(240, 17, 17, 0.3);
+  /* Un blanco translúcido */
+  filter: blur(69.3px);
+}
+
+.blur-circle-left {
+  position: absolute;
+  left: -80;
+  top: 66%;
+  transform: translateY(-50%);
+  width: 224px;
+  height: 430px;
+  border-radius: 50%;
+  background-color: #f5f1f1;
+  filter: blur(69.3px);
+  z-index: 1;
+}
+
+.blur-circle-right {
+  position: absolute;
+  right: -62px;
+  top: 63%;
+  transform: translateY(-50%);
+  width: 224px;
+  height: 430px;
+  border-radius: 50%;
+  background-color: #f5f1f1;
+  filter: blur(69.3px);
+  z-index: 1;
+}
