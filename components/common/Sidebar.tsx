@@ -46,6 +46,27 @@ import {
 import { useAuth } from '@/lib/AuthContext'
 import { useUserMode } from '@/lib/contexts/UserModeContext';
 
+// Import del contexto de sidebar
+interface SidebarContextType {
+  isCollapsed: boolean
+  toggleSidebar: () => void
+}
+
+// Hook para usar el contexto de sidebar
+function useSidebarContext(): SidebarContextType {
+  try {
+    // Dinamically import the context to avoid circular dependencies
+    const { useSidebarContext: useContext } = require('../../app/dashboard/layout')
+    return useContext()
+  } catch {
+    // Fallback if context is not available
+    return {
+      isCollapsed: false,
+      toggleSidebar: () => {}
+    }
+  }
+}
+
 /**
  * Sidebar Navigation Component with Neumorphism
  * 
@@ -73,6 +94,7 @@ export const Sidebar = () => {
   const pathname = usePathname()
   const { user, signOut } = useAuth()
   const { userMode, toggleUserMode } = useUserMode()
+  const { isCollapsed } = useSidebarContext()
   const [isOpen, setIsOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
 
@@ -140,103 +162,123 @@ export const Sidebar = () => {
 
       {/* Sidebar container with neumorphic design */}
       <aside
-        className={`fixed md:static w-[280px] h-screen z-20 transform transition-all duration-300 ${
+        className={`fixed md:static h-screen z-20 transform transition-all duration-300 ${
+          isCollapsed ? 'w-[80px]' : 'w-[280px]'
+        } ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 flex flex-col neuro-sidebar`}
+        } md:translate-x-0 flex flex-col neuro-sidebar overflow-hidden`}
       >
         {/* Logo section with neumorphic container */}
         <div className="py-6 px-4 flex justify-center">
           <div className="neuro-container p-4 rounded-lg">
             <StaticLink href="/dashboard" className="block">
-              <img
-                src="/assets/images/Logo.svg"
-                alt="CognIA Logo"
-                width={160}
-                height={40}
-                className="object-contain"
-                style={{ maxWidth: '100%', height: 'auto' }}
-                onLoad={() => console.log('✅ Sidebar logo loaded successfully')}
-                onError={(e) => {
-                  console.error('❌ Sidebar logo failed to load:', e);
-                  console.error('Sidebar logo src:', e.currentTarget.src);
-                }}
-              />
+              {isCollapsed ? (
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                  C
+                </div>
+              ) : (
+                <img
+                  src="/assets/images/Logo.svg"
+                  alt="CognIA Logo"
+                  width={160}
+                  height={40}
+                  className="object-contain"
+                  style={{ maxWidth: '100%', height: 'auto' }}
+                  onLoad={() => console.log('✅ Sidebar logo loaded successfully')}
+                  onError={(e) => {
+                    console.error('❌ Sidebar logo failed to load:', e);
+                    console.error('Sidebar logo src:', e.currentTarget.src);
+                  }}
+                />
+              )}
             </StaticLink>
           </div>
         </div>
 
         {/* User profile section with neumorphic elements */}
-        <div className="px-5 py-4 mb-6">
-          <div className="neuro-container p-4 rounded-lg flex items-center">
-            <div className="neuro-avatar w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center uppercase font-bold text-white">
-              {user?.displayName ? user.displayName.charAt(0) : 'U'}
-            </div>
-            <div className="ml-3">
-              <p className="text-gray-800 text-sm font-medium">
-                {user?.displayName || 'Demo User'}
-              </p>
-              <p className="text-xs text-gray-500">
-                {user?.email || 'user@example.com'}
-              </p>
+        {!isCollapsed && (
+          <div className="px-5 py-4 mb-6">
+            <div className="neuro-container p-4 rounded-lg flex items-center">
+              <div className="neuro-avatar w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center uppercase font-bold text-white">
+                {user?.displayName ? user.displayName.charAt(0) : 'U'}
+              </div>
+              <div className="ml-3">
+                <p className="text-gray-800 text-sm font-medium">
+                  {user?.displayName || 'Demo User'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {user?.email || 'user@example.com'}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Main navigation menu with neumorphic items */}
         <nav className="flex-1 px-4 py-2 overflow-y-auto">
-          <div className="neuro-inset p-4 rounded-lg mb-6">
+          <div className={`neuro-inset rounded-lg mb-6 ${isCollapsed ? 'p-2' : 'p-4'}`}>
             <ul className="space-y-2">
               {mainNavItems.map((item) => (
                 <li key={item.path}>
-                  <StaticLink
-                    href={item.path}
-                    className={`neuro-nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all duration-300 ${
-                      isActive(item.path)
-                        ? 'text-white font-medium'
-                        : 'text-gray-700 hover:text-gray-900'
-                    }`}
-                    style={isActive(item.path) ? {
-                      background: 'linear-gradient(135deg, var(--cognia-blue-dark), var(--cognia-blue-purple))',
-                      color: 'white',
-                      boxShadow: '0 2px 8px rgba(19, 41, 68, 0.25)'
-                    } : {}}
-                  >
-                    <span className="text-lg">{item.icon}</span>
-                    {item.label}
-                  </StaticLink>
+                  <div title={isCollapsed ? item.label : undefined}>
+                    <StaticLink
+                      href={item.path}
+                      className={`neuro-nav-item flex items-center rounded-lg text-sm transition-all duration-300 ${
+                        isCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
+                      } ${
+                        isActive(item.path)
+                          ? 'text-white font-medium'
+                          : 'text-gray-700 hover:text-gray-900'
+                      }`}
+                      style={isActive(item.path) ? {
+                        background: 'linear-gradient(135deg, var(--cognia-blue-dark), var(--cognia-blue-purple))',
+                        color: 'white',
+                        boxShadow: '0 2px 8px rgba(19, 41, 68, 0.25)'
+                      } : {}}
+                    >
+                      <span className="text-lg">{item.icon}</span>
+                      {!isCollapsed && <span>{item.label}</span>}
+                    </StaticLink>
+                  </div>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* Tools section header */}
-          <div className="mb-4">
-            <p className="px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Tools
-            </p>
-          </div>
+          {!isCollapsed && (
+            <div className="mb-4">
+              <p className="px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tools
+              </p>
+            </div>
+          )}
 
           {/* Secondary navigation menu with neumorphic items */}
-          <div className="neuro-inset p-4 rounded-lg">
+          <div className={`neuro-inset rounded-lg ${isCollapsed ? 'p-2' : 'p-4'}`}>
             <ul className="space-y-2">
               {secondaryNavItems.map((item) => (
                 <li key={item.path}>
-                  <StaticLink
-                    href={item.path}
-                    className={`neuro-nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all duration-300 ${
-                      isActive(item.path)
-                        ? 'text-white font-medium'
-                        : 'text-gray-700 hover:text-gray-900'
-                    }`}
-                    style={isActive(item.path) ? {
-                      background: 'linear-gradient(135deg, var(--cognia-blue-dark), var(--cognia-blue-purple))',
-                      color: 'white',
-                      boxShadow: '0 2px 8px rgba(19, 41, 68, 0.25)'
-                    } : {}}
-                  >
-                    <span className="text-lg">{item.icon}</span>
-                    {item.label}
-                  </StaticLink>
+                  <div title={isCollapsed ? item.label : undefined}>
+                    <StaticLink
+                      href={item.path}
+                      className={`neuro-nav-item flex items-center rounded-lg text-sm transition-all duration-300 ${
+                        isCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
+                      } ${
+                        isActive(item.path)
+                          ? 'text-white font-medium'
+                          : 'text-gray-700 hover:text-gray-900'
+                      }`}
+                      style={isActive(item.path) ? {
+                        background: 'linear-gradient(135deg, var(--cognia-blue-dark), var(--cognia-blue-purple))',
+                        color: 'white',
+                        boxShadow: '0 2px 8px rgba(19, 41, 68, 0.25)'
+                      } : {}}
+                    >
+                      <span className="text-lg">{item.icon}</span>
+                      {!isCollapsed && <span>{item.label}</span>}
+                    </StaticLink>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -249,32 +291,39 @@ export const Sidebar = () => {
           <div className="relative">
             <button
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-              className="neuro-button flex items-center justify-between w-full py-3 px-4 text-gray-700 text-sm rounded-lg transition-all duration-300 hover:text-gray-900"
+              className={`neuro-button flex items-center w-full py-3 text-gray-700 text-sm rounded-lg transition-all duration-300 hover:text-gray-900 ${
+                isCollapsed ? 'justify-center px-3' : 'justify-between px-4'
+              }`}
+              title={isCollapsed ? `${user?.email || 'Demo User'} - ${userMode === 'admin' ? 'Administrator' : 'Student'}` : undefined}
             >
-              <div className="flex items-center gap-3">
+              <div className={`flex items-center ${isCollapsed ? '' : 'gap-3'}`}>
                 <div className="w-8 h-8 neuro-container rounded-full flex items-center justify-center">
                   <FiUser className="text-gray-600" />
                 </div>
-                <div className="text-left">
-                  <div className="font-semibold text-xs text-gray-800">
-                    {user?.email || 'Demo User'}
+                {!isCollapsed && (
+                  <div className="text-left ml-3">
+                    <div className="font-semibold text-xs text-gray-800">
+                      {user?.email || 'Demo User'}
+                    </div>
+                    <div className={`text-xs font-medium ${
+                      userMode === 'admin' 
+                        ? 'text-orange-600' 
+                        : 'text-blue-600'
+                    }`}>
+                      {userMode === 'admin' ? 'Administrator' : 'Student'}
+                    </div>
                   </div>
-                  <div className={`text-xs font-medium ${
-                    userMode === 'admin' 
-                      ? 'text-orange-600' 
-                      : 'text-blue-600'
-                  }`}>
-                    {userMode === 'admin' ? 'Administrator' : 'Student'}
-                  </div>
-                </div>
+                )}
               </div>
-              <FiChevronDown className={`transition-transform duration-200 ${
-                isProfileDropdownOpen ? 'rotate-180' : ''
-              }`} />
+              {!isCollapsed && (
+                <FiChevronDown className={`transition-transform duration-200 ${
+                  isProfileDropdownOpen ? 'rotate-180' : ''
+                }`} />
+              )}
             </button>
 
             {/* Dropdown Menu */}
-            {isProfileDropdownOpen && (
+            {isProfileDropdownOpen && !isCollapsed && (
               <div className="absolute bottom-full left-0 right-0 mb-2 neuro-container rounded-lg shadow-lg border z-50">
                 <div className="p-2">
                   {/* Mode Toggle */}

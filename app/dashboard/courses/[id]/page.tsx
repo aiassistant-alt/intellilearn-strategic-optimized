@@ -392,8 +392,8 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-white to-gray-50 px-4 py-6">
+      <div className="max-w-full mx-auto">
         {/* Header con controles de modo */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center space-x-4">
@@ -565,10 +565,10 @@ export default function CourseDetailPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Sidebar con contenido del curso */}
           <div className="lg:col-span-1">
-            <div className="neuro-container rounded-2xl p-6 sticky top-6">
+            <div className="neuro-container rounded-2xl p-6 sticky top-4 ml-2">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-[#132944]">Contenido del Curso</h2>
                 {userMode === 'admin' && (
@@ -760,8 +760,8 @@ export default function CourseDetailPage() {
           </div>
 
           {/* Contenido principal */}
-          <div className="lg:col-span-2">
-            <div className="neuro-container rounded-2xl p-8">
+          <div className="lg:col-span-3">
+            <div className="neuro-container rounded-2xl p-8 mr-4">
               {editingLesson ? (
                 <div className="space-y-6">
                   <h2 className="text-2xl font-bold text-[#132944] mb-6">Editando Lección</h2>

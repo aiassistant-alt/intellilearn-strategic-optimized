@@ -874,6 +874,26 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
             inset 20px 20px 40px #d9d9d9,
             inset -20px -20px 40px #ffffff;
         }
+
+        /* Dark mode styles for voice circle */
+        [data-theme="dark"] .nm-voice-circle {
+          background: #2a2a2a;
+          box-shadow: 
+            30px 30px 60px #1a1a1a,
+            -30px -30px 60px #3a3a3a;
+        }
+        
+        [data-theme="dark"] .nm-voice-circle:hover {
+          box-shadow: 
+            35px 35px 70px #1a1a1a,
+            -35px -35px 70px #3a3a3a;
+        }
+        
+        [data-theme="dark"] .nm-voice-circle.active {
+          box-shadow: 
+            inset 20px 20px 40px #1a1a1a,
+            inset -20px -20px 40px #3a3a3a;
+        }
         
         .nm-voice-inner-circle {
           position: relative;
@@ -888,6 +908,14 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
           align-items: center;
           justify-content: center;
           overflow: hidden;
+        }
+
+        /* Dark mode styles for inner voice circle */
+        [data-theme="dark"] .nm-voice-inner-circle {
+          background: #2a2a2a;
+          box-shadow: 
+            inset 10px 10px 20px #1a1a1a,
+            inset -10px -10px 20px #3a3a3a;
         }
         
         /* Iridescent Center */
@@ -946,6 +974,17 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
         .nm-voice-circle.active .nm-voice-icon {
           color: #ffffff;
           filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.6));
+        }
+
+        /* Dark mode styles for voice icon */
+        [data-theme="dark"] .nm-voice-icon {
+          color: #e0e0e0;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+        
+        [data-theme="dark"] .nm-voice-circle.active .nm-voice-icon {
+          color: #ffffff;
+          filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.8));
         }
         
         /* Voice waves */
