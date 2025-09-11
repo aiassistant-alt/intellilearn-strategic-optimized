@@ -428,39 +428,53 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
                     poster="/assets/images/video-thumbnail.jpg"
                     playsInline
                     controls={false}
-                    onLoadedData={(e) => {
-                      // Capturar frame del video como miniatura (segundo 2)
+                    crossOrigin="anonymous"
+                    onLoadedMetadata={(e) => {
+                      // Capturar frame del video como miniatura más confiable
                       const videoElement = e.currentTarget as HTMLVideoElement;
+                      console.log(`🎬 [VideoThumbnail] Video loaded for ${video.title}, duration: ${videoElement.duration}`);
+                      
                       if (videoElement.duration > 2) {
                         videoElement.currentTime = 2;
-                        // Crear canvas para capturar frame
-                        setTimeout(() => {
-                          const canvas = document.createElement('canvas');
-                          const ctx = canvas.getContext('2d');
-                          if (ctx) {
-                            canvas.width = videoElement.videoWidth;
-                            canvas.height = videoElement.videoHeight;
-                            ctx.drawImage(videoElement, 0, 0);
-                            const dataURL = canvas.toDataURL('image/jpeg', 0.8);
-                            // Usar como poster
-                            videoElement.poster = dataURL;
+                        
+                        // Crear canvas inmediatamente cuando el seek termine
+                        const handleSeeked = () => {
+                          try {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            if (ctx && videoElement.videoWidth && videoElement.videoHeight) {
+                              canvas.width = videoElement.videoWidth;
+                              canvas.height = videoElement.videoHeight;
+                              ctx.drawImage(videoElement, 0, 0);
+                              const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+                              videoElement.poster = dataURL;
+                              console.log(`✅ [VideoThumbnail] Thumbnail generated for ${video.title}`);
+                            }
+                          } catch (error) {
+                            console.warn(`⚠️ [VideoThumbnail] Failed to generate thumbnail for ${video.title}:`, error);
                           }
-                        }, 100);
+                          videoElement.removeEventListener('seeked', handleSeeked);
+                        };
+                        
+                        videoElement.addEventListener('seeked', handleSeeked);
                       }
                     }}
                     onError={(e) => {
-                      // Si falla el video, mostrar imagen por defecto
+                      console.warn(`❌ [VideoThumbnail] Video failed to load: ${video.title}`);
+                      // Si falla el video, mantener el poster por defecto
                       const target = e.currentTarget as HTMLVideoElement;
+                      target.style.display = 'none';
                       const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `
-                          <div class="w-full h-full bg-gray-800 flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 200 200" class="text-gray-400">
-                              <rect width="200" height="200" fill="currentColor" opacity="0.1"/>
-                              <path d="M80 60h40v20L140 60v80l-20-20v20H80V60z" fill="currentColor" opacity="0.6"/>
-                            </svg>
-                          </div>
+                      if (parent && !parent.querySelector('.fallback-thumbnail')) {
+                        const fallback = document.createElement('div');
+                        fallback.className = 'fallback-thumbnail w-full h-full bg-gray-800 flex items-center justify-center';
+                        fallback.innerHTML = `
+                          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 200 200" class="text-gray-400">
+                            <rect width="200" height="200" fill="currentColor" opacity="0.1"/>
+                            <path d="M80 60h40v20L140 60v80l-20-20v20H80V60z" fill="currentColor" opacity="0.6"/>
+                          </svg>
                         `;
+                        parent.appendChild(fallback);
                       }
                     }}
                   />
