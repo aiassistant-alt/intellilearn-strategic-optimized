@@ -14,6 +14,12 @@
   --text-secondary: #a0a0a0;
   --text-muted: #606060;
   
+  /* Acentos azul/lila digitales */
+  --accent-primary: #8b5cf6;    /* Púrpura violeta */
+  --accent-secondary: #6366f1;  /* Índigo */
+  --accent-tertiary: #a78bfa;   /* Púrpura claro */
+  --accent-border: rgba(99, 102, 241, 0.3);  /* Azul/índigo translúcido */
+  
   /* Sombras neumórficas MATE - Solo negro y gris */
   --shadow-light: rgba(50, 50, 50, 0.2);
   --shadow-dark: rgba(0, 0, 0, 0.8);
@@ -257,7 +263,7 @@
   border-color: #333333 !important;
 }
 
-/* HEADERS - BLANCOS */
+/* HEADERS - BLANCOS CON ACENTOS AZUL/LILA */
 [data-theme="dark"] h1,
 [data-theme="dark"] h2,
 [data-theme="dark"] h3,
@@ -265,6 +271,20 @@
 [data-theme="dark"] h5,
 [data-theme="dark"] h6 {
   color: #ffffff !important;
+}
+
+/* Headers principales con acento azul/lila */
+[data-theme="dark"] h1:first-child,
+[data-theme="dark"] .main-title,
+[data-theme="dark"] .page-title {
+  color: var(--accent-primary) !important;
+}
+
+/* Headers secundarios con acento */
+[data-theme="dark"] .course-title,
+[data-theme="dark"] .section-title,
+[data-theme="dark"] .card-title {
+  color: var(--accent-tertiary) !important;
 }
 
 /* TEXTOS - GRISES */
@@ -556,4 +576,113 @@
 [data-theme="dark"] div[class*="dropdown"],
 [data-theme="dark"] div[class*="rounded"][class*="p-"] {
   background: #222222 !important;
+}
+
+/* ===========================================
+   ACENTOS AZUL/LILA DIGITALES - SIN GLOW
+   =========================================== */
+
+/* Botones primarios con acento azul/lila */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .primary-action,
+[data-theme="dark"] .cta-button,
+[data-theme="dark"] .action-button-primary {
+  background: var(--accent-primary) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--accent-secondary) !important;
+}
+
+/* Botones secundarios con acento sutil */
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .secondary-action,
+[data-theme="dark"] .action-button-secondary {
+  border: 1px solid var(--accent-border) !important;
+  color: var(--accent-tertiary) !important;
+}
+
+/* Enlaces y navegación con acento azul/lila */
+[data-theme="dark"] .nav-link.active,
+[data-theme="dark"] .menu-item.active,
+[data-theme="dark"] .tab-active,
+[data-theme="dark"] .sidebar-item.active {
+  color: var(--accent-primary) !important;
+  border-color: var(--accent-border) !important;
+}
+
+/* Iconos activos con acento */
+[data-theme="dark"] .icon-active,
+[data-theme="dark"] .nav-icon.active,
+[data-theme="dark"] .menu-icon.active {
+  color: var(--accent-primary) !important;
+}
+
+/* Bordes de énfasis */
+[data-theme="dark"] .emphasis-border,
+[data-theme="dark"] .highlight-border,
+[data-theme="dark"] .accent-border {
+  border-color: var(--accent-border) !important;
+}
+
+/* Cards hover con acento sutil */
+[data-theme="dark"] .card:hover,
+[data-theme="dark"] .course-card:hover,
+[data-theme="dark"] .item-card:hover,
+[data-theme="dark"] .nm-card:hover {
+  border-color: var(--accent-border) !important;
+}
+
+/* Progress bars con acento */
+[data-theme="dark"] .progress-bar,
+[data-theme="dark"] .completion-bar,
+[data-theme="dark"] .progress-fill {
+  background: var(--accent-secondary) !important;
+}
+
+/* Badges y etiquetas con acento */
+[data-theme="dark"] .badge-primary,
+[data-theme="dark"] .tag-primary,
+[data-theme="dark"] .status-active,
+[data-theme="dark"] .chip-active {
+  background: var(--accent-primary) !important;
+  color: #ffffff !important;
+}
+
+/* Separadores con acento sutil */
+[data-theme="dark"] .divider-accent,
+[data-theme="dark"] .separator-accent {
+  background: var(--accent-border) !important;
+}
+
+/* Títulos y texto de acento */
+[data-theme="dark"] .text-accent,
+[data-theme="dark"] .title-accent,
+[data-theme="dark"] .heading-accent {
+  color: var(--accent-primary) !important;
+}
+
+/* My Courses específicos */
+[data-theme="dark"] .courses-grid .course-item:hover,
+[data-theme="dark"] .course-list-item:hover,
+[data-theme="dark"] .course-thumbnail:hover {
+  border-color: var(--accent-border) !important;
+}
+
+/* Dashboard específicos */
+[data-theme="dark"] .dashboard-card:hover,
+[data-theme="dark"] .stats-card:hover,
+[data-theme="dark"] .metric-card:hover {
+  border-color: var(--accent-border) !important;
+}
+
+/* Enlaces de acción con acento */
+[data-theme="dark"] .action-link,
+[data-theme="dark"] .primary-link,
+[data-theme="dark"] .nav-primary {
+  color: var(--accent-tertiary) !important;
+}
+
+[data-theme="dark"] .action-link:hover,
+[data-theme="dark"] .primary-link:hover,
+[data-theme="dark"] .nav-primary:hover {
+  color: var(--accent-primary) !important;
 }

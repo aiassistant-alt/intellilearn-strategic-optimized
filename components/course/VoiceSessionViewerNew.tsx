@@ -831,6 +831,11 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
           padding: 40px;
           border-radius: 24px;
         }
+
+        /* Dark mode styles for container */
+        [data-theme="dark"] .nm-white-container {
+          background: #2a2a2a;
+        }
         
         .voice-main-wrapper {
           position: relative;
@@ -947,6 +952,17 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
           filter: blur(15px);
           animation: rotate-iridescent 2s linear infinite;
         }
+
+        /* Dark mode styles for iridescent center */
+        [data-theme="dark"] .nm-voice-iridescent {
+          opacity: 0.8;
+          filter: blur(18px);
+        }
+
+        [data-theme="dark"] .nm-voice-circle.active .nm-voice-iridescent {
+          opacity: 1.0;
+          filter: blur(12px);
+        }
         
         /* Microphone Icon */
         .nm-voice-icon-container {
@@ -1049,6 +1065,18 @@ export default function VoiceSessionViewerNew({ lesson }: VoiceSessionViewerProp
           font-size: 0.95rem;
           line-height: 1.6;
           text-align: left;
+        }
+
+        /* Dark mode styles for response container */
+        [data-theme="dark"] .response-container {
+          background: #2a2a2a;
+          box-shadow: 
+            inset 5px 5px 10px #1a1a1a,
+            inset -5px -5px 10px #3a3a3a;
+        }
+
+        [data-theme="dark"] .response-text {
+          color: #e0e0e0;
         }
         
         

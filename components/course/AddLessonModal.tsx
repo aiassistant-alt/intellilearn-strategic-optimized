@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { FaPlay, FaBookOpen, FaQuestionCircle, FaClipboardList, FaArrowRight, FaArrowLeft, FaSave, FaCheck, FaUpload, FaSpinner, FaMicrophone, FaImage, FaTimes } from 'react-icons/fa'
+import { FaPlay, FaBookOpen, FaQuestionCircle, FaClipboardList, FaArrowRight, FaArrowLeft, FaSave, FaCheck, FaUpload, FaSpinner, FaMicrophone, FaImage, FaTimes, FaPlus } from 'react-icons/fa'
+import * as novaConfigService from '../../lib/services/novaConfigService'
 
 interface AddLessonModalProps {
   isOpen: boolean
@@ -9,7 +10,7 @@ interface AddLessonModalProps {
   onSave: (lessonData: { 
     title: string; 
     description: string; 
-    type: 'video' | 'reading' | 'quiz' | 'assignment' | 'podcast' | 'image'; 
+    type: 'video' | 'reading' | 'quiz' | 'assignment' | 'podcast' | 'image' | 'voice_session'; 
     content: string; 
     videoUrl?: string; 
     duration: string; 
@@ -48,13 +49,13 @@ const lessonTypes = [
     s3Folder: 'Documents'
   },
   {
-    type: 'podcast' as const,
-    icon: FaMicrophone,
-    title: 'Podcast',
-    description: 'Se guardará en S3/Podcast/',
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-50',
-    s3Folder: 'Podcast'
+    type: 'image' as const,
+    icon: FaImage,
+    title: 'Imagen',
+    description: 'Se guardará en S3/Images/',
+    color: 'text-pink-500',
+    bgColor: 'bg-pink-50',
+    s3Folder: 'Images'
   },
   {
     type: 'quiz' as const,
@@ -101,7 +102,7 @@ export default function AddLessonModal({
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    type: 'reading' as 'video' | 'reading' | 'quiz' | 'assignment' | 'podcast' | 'image',
+    type: 'reading' as 'video' | 'reading' | 'quiz' | 'assignment' | 'podcast' | 'image' | 'voice_session',
     content: '',
     videoUrl: '',
     duration: '',
@@ -227,6 +228,43 @@ export default function AddLessonModal({
 
   const selectedType = lessonTypes.find(t => t.type === formData.type)
 
+  /**
+   * Generate Voice Session Function
+   */
+  const generateVoiceSession = async () => {
+    try {
+      console.log('🎤 Generating voice session...')
+      
+      // Get default Nova Sonic configuration
+      const config = await novaConfigService.getNovaConfiguration('default')
+      
+      const sessionData = {
+        title: `Sesión Nova Sonic - ${moduleId}`,
+        description: `Sesión interactiva con Nova Sonic sobre el módulo`,
+        type: 'voice_session' as const,
+        content: JSON.stringify({
+          configId: 'default',
+          configName: config.configName,
+          voice: config.modelConfiguration.voiceId,
+          temperature: config.modelConfiguration.temperature,
+          maxTokens: config.modelConfiguration.maxTokens,
+          systemPrompt: config.systemPrompts?.default || `Eres un tutor experto especializado en este módulo. Proporciona explicaciones claras y ejemplos prácticos.`,
+          moduleTitle: moduleId,
+          createdAt: new Date().toISOString()
+        }),
+        duration: '20 min',
+        order: lessonCount + 1
+      }
+      
+      console.log('✅ Voice session generated:', sessionData)
+      await onSave(sessionData)
+      handleClose()
+    } catch (error) {
+      console.error('❌ Error generating voice session:', error)
+      alert('Error al generar la sesión de voz. Intenta nuevamente.')
+    }
+  }
+
   if (!isOpen) return null
 
   return (
@@ -307,6 +345,32 @@ export default function AddLessonModal({
                   </button>
                 )
               })}
+            </div>
+            
+            {/* Separator */}
+            <div className="flex items-center my-8">
+              <div className="flex-1 h-px bg-gray-300"></div>
+              <span className="px-4 text-gray-500 text-sm">o</span>
+              <div className="flex-1 h-px bg-gray-300"></div>
+            </div>
+            
+            {/* Voice Session Button */}
+            <div className="text-center">
+              <button
+                onClick={generateVoiceSession}
+                className="nm-white-button-primary inline-flex items-center gap-3 px-8 py-4 rounded-xl transition-all duration-300 hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  boxShadow: '8px 8px 16px #d9d9d9, -8px -8px 16px #ffffff'
+                }}
+              >
+                <FaPlus className="text-lg" />
+                <span className="font-semibold">Generar Sesión de Voz Educativa</span>
+              </button>
+              <p className="text-gray-500 text-sm mt-3">
+                Crea automáticamente una sesión interactiva con Nova Sonic
+              </p>
             </div>
           </div>
         )}
@@ -594,7 +658,7 @@ Ejemplos de formato:
         </div>
       </div>
 
-      {/* Neumorphic White Styles */}
+      {/* Neumorphic Styles - Light and Dark Mode */}
       <style jsx>{`
         .nm-modal-white {
           background: #ffffff;
@@ -602,12 +666,29 @@ Ejemplos de formato:
           box-shadow: 
             30px 30px 60px #d9d9d9,
             -30px -30px 60px #ffffff;
+          border: none;
+        }
+
+        /* Dark mode styles with digital blue/purple theme */
+        [data-theme="dark"] .nm-modal-white {
+          background: #1a1a1a;
+          box-shadow: 
+            20px 20px 40px #0f0f0f,
+            -20px -20px 40px #252525,
+            inset 0 0 0 1px rgba(99, 102, 241, 0.3);
+          border: 1px solid rgba(99, 102, 241, 0.5);
         }
 
         .nm-modal-header {
           position: relative;
           background: #ffffff;
           border-bottom: 1px solid #f0f0f0;
+        }
+
+        /* Dark mode header */
+        [data-theme="dark"] .nm-modal-header {
+          background: #1a1a1a;
+          border-bottom: 1px solid rgba(99, 102, 241, 0.3);
         }
 
         .nm-modal-title {
@@ -624,6 +705,15 @@ Ejemplos de formato:
           display: inline-block;
           margin: 0 auto;
           width: fit-content;
+        }
+
+        /* Dark mode title */
+        [data-theme="dark"] .nm-modal-title {
+          color: #8b5cf6;
+          background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+          box-shadow: 
+            inset 3px 3px 6px #0f0f0f,
+            inset -3px -3px 6px #252525;
         }
 
         .nm-close-button {
@@ -652,6 +742,22 @@ Ejemplos de formato:
             -2px -2px 4px #ffffff;
         }
 
+        /* Dark mode close button */
+        [data-theme="dark"] .nm-close-button {
+          background: #1a1a1a;
+          color: #8b5cf6;
+          box-shadow: 
+            4px 4px 8px #0f0f0f,
+            -4px -4px 8px #252525;
+        }
+
+        [data-theme="dark"] .nm-close-button:hover {
+          box-shadow: 
+            2px 2px 4px #0f0f0f,
+            -2px -2px 4px #252525;
+          color: #a78bfa;
+        }
+
         .nm-white-input {
           background: #ffffff;
           box-shadow: 
@@ -666,6 +772,21 @@ Ejemplos de formato:
           box-shadow: 
             inset 6px 6px 12px #e6e6e6,
             inset -6px -6px 12px #ffffff;
+        }
+
+        /* Dark mode inputs */
+        [data-theme="dark"] .nm-white-input {
+          background: #1a1a1a;
+          color: #e0e0e0;
+          box-shadow: 
+            inset 4px 4px 8px #0f0f0f,
+            inset -4px -4px 8px #252525;
+        }
+
+        [data-theme="dark"] .nm-white-input:focus {
+          box-shadow: 
+            inset 6px 6px 12px #0f0f0f,
+            inset -6px -6px 12px #252525;
         }
 
         .nm-white-card {
@@ -689,12 +810,44 @@ Ejemplos de formato:
           background: linear-gradient(145deg, #f9f9f9, #ffffff);
         }
 
+        /* Dark mode cards */
+        [data-theme="dark"] .nm-white-card {
+          background: #1a1a1a;
+          color: #e0e0e0;
+          box-shadow: 
+            8px 8px 16px #0f0f0f,
+            -8px -8px 16px #252525;
+        }
+
+        [data-theme="dark"] .nm-white-card:hover {
+          box-shadow: 
+            10px 10px 20px #0f0f0f,
+            -10px -10px 20px #252525;
+        }
+
+        [data-theme="dark"] .nm-white-card-selected {
+          box-shadow: 
+            inset 4px 4px 8px #0f0f0f,
+            inset -4px -4px 8px #252525;
+          background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+          border: 1px solid rgba(99, 102, 241, 0.6);
+        }
+
         .nm-white-icon-box,
         .nm-white-icon-large {
           background: #ffffff;
           box-shadow: 
             4px 4px 8px #e6e6e6,
             -4px -4px 8px #ffffff;
+        }
+
+        /* Dark mode icons */
+        [data-theme="dark"] .nm-white-icon-box,
+        [data-theme="dark"] .nm-white-icon-large {
+          background: #1a1a1a;
+          box-shadow: 
+            4px 4px 8px #0f0f0f,
+            -4px -4px 8px #252525;
         }
 
         .nm-white-section,
@@ -797,6 +950,51 @@ Ejemplos de formato:
             inset 2px 2px 4px #e6e6e6,
             inset -2px -2px 4px #ffffff;
           color: #9ca3af;
+        }
+
+        /* Dark mode general text colors */
+        [data-theme="dark"] .text-gray-600,
+        [data-theme="dark"] .text-gray-500 {
+          color: #9ca3af !important;
+        }
+
+        [data-theme="dark"] .text-gray-700 {
+          color: #d1d5db !important;
+        }
+
+        [data-theme="dark"] h3 {
+          color: #8b5cf6 !important;
+        }
+
+        [data-theme="dark"] label {
+          color: #e0e0e0 !important;
+        }
+
+        /* Dark mode separators */
+        [data-theme="dark"] .bg-gray-300 {
+          background: rgba(99, 102, 241, 0.3) !important;
+        }
+
+        /* Dark mode progress indicators */
+        [data-theme="dark"] .nm-white-button-active {
+          background: #8b5cf6 !important;
+          color: #ffffff !important;
+          box-shadow: 
+            3px 3px 6px #0f0f0f,
+            -3px -3px 6px #252525;
+        }
+
+        [data-theme="dark"] .nm-white-button-completed {
+          background: #6366f1 !important;
+          color: #ffffff !important;
+        }
+
+        [data-theme="dark"] .nm-white-button-inactive {
+          background: #1a1a1a !important;
+          color: #9ca3af !important;
+          box-shadow: 
+            3px 3px 6px #0f0f0f,
+            -3px -3px 6px #252525;
         }
       `}</style>
     </div>

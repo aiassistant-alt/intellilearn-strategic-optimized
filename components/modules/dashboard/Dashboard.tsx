@@ -35,7 +35,7 @@ export default function DashboardContent() {
     <div className="p-8" style={{ background: 'var(--neuro-bg-light)' }}>
       {/* Welcome Header with neumorphism */}
       <div className="neuro-container rounded-2xl p-6 mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-gray-800">
+        <h1 className="text-3xl font-bold mb-2 text-gray-800 main-title">
           ¡Bienvenido, {user?.displayName?.split(' ')[0] || 'Usuario'}!
         </h1>
         <p className="text-gray-600">
@@ -45,12 +45,12 @@ export default function DashboardContent() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {/* Recent Courses Card with neumorphism */}
-        <div className="neuro-container rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+        <div className="neuro-container dashboard-card rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
           <div className="flex items-center mb-6">
             <div className="neuro-icon mr-3">
               <FaPlay className="text-purple-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-800">Cursos Recientes</h2>
+            <h2 className="text-xl font-semibold text-gray-800 section-title">Cursos Recientes</h2>
           </div>
           
           <div className="space-y-4">

@@ -206,7 +206,7 @@ const Courses = () => {
     <div className="p-6 min-h-screen" style={{ background: '#ffffff' }}>
       <NeumorphicStyles />
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Mis Cursos</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2 page-title">Mis Cursos</h1>
         <p className="text-gray-600">Explora y continúa con tu aprendizaje en los siguientes cursos</p>
       </div>
 
@@ -277,7 +277,7 @@ const Courses = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map(course => (
-            <div key={course.id} className="nm-white-card rounded-2xl p-6 flex flex-col">
+            <div key={course.id} className="nm-white-card course-card rounded-2xl p-6 flex flex-col">
               <div className="relative h-48 mb-4 rounded-lg overflow-hidden">
                 <Image 
                   src={course.image} 
@@ -294,7 +294,7 @@ const Courses = () => {
               </div>
               
               <div className="flex-1 flex flex-col">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">{course.title}</h3>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2 course-title">{course.title}</h3>
                 <p className="text-sm text-gray-600 mb-2 flex items-center">
                   <FaUser className="mr-2" />
                   Instructor: {course.instructor}
@@ -330,7 +330,7 @@ const Courses = () => {
                   </div>
                   <div className="nm-white-progress">
                     <div 
-                      className="nm-white-progress-fill" 
+                      className="nm-white-progress-fill progress-fill" 
                       style={{ width: `${course.progress}%` }}
                     ></div>
                   </div>
@@ -340,7 +340,7 @@ const Courses = () => {
               <div className="pt-4 mt-4 border-t border-gray-100">
                 <StaticLink 
                   href={`/dashboard/courses/${course.id}`}
-                  className="nm-white-button-primary w-full flex items-center justify-center py-3 px-4 rounded-lg transition-all duration-300 font-semibold"
+                  className="nm-white-button-primary primary-action w-full flex items-center justify-center py-3 px-4 rounded-lg transition-all duration-300 font-semibold"
                 >
                   <FaEye className="mr-2" />
                   {course.progress > 0 ? 'Continuar aprendiendo' : 'Comenzar curso'}
