@@ -420,14 +420,49 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
               <div className={`relative ${viewMode === 'list' ? 'w-32 h-20 flex-shrink-0 mr-4' : 'w-full h-48 mb-4'} bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden`}>
                 {/* Miniatura de video real */}
                 <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
-                  {/* Usar imagen estática temporalmente mientras se arregla CORS */}
-                  <img
-                    src="/assets/images/video-thumbnail.jpg"
-                    alt={`Miniatura de ${video.title}`}
+                  {/* Miniaturas dinámicas de video - CORS configurado ✅ */}
+                  <video
+                    src={video.url}
                     className="w-full h-full object-cover"
+                    preload="metadata"
+                    muted
+                    poster="/assets/images/video-thumbnail.jpg"
+                    playsInline
+                    controls={false}
+                    onLoadedMetadata={(e) => {
+                      // Capturar frame del video como miniatura
+                      const videoElement = e.currentTarget as HTMLVideoElement;
+                      console.log(`🎬 [VideoThumbnail] Video loaded for ${video.title}, duration: ${videoElement.duration}`);
+                      
+                      if (videoElement.duration > 2) {
+                        videoElement.currentTime = 2;
+                        
+                        // Crear canvas cuando el seek termine
+                        const handleSeeked = () => {
+                          try {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            if (ctx && videoElement.videoWidth && videoElement.videoHeight) {
+                              canvas.width = videoElement.videoWidth;
+                              canvas.height = videoElement.videoHeight;
+                              ctx.drawImage(videoElement, 0, 0);
+                              const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+                              videoElement.poster = dataURL;
+                              console.log(`✅ [VideoThumbnail] Thumbnail generated for ${video.title}`);
+                            }
+                          } catch (error) {
+                            console.warn(`⚠️ [VideoThumbnail] Failed to generate thumbnail for ${video.title}:`, error);
+                          }
+                          videoElement.removeEventListener('seeked', handleSeeked);
+                        };
+                        
+                        videoElement.addEventListener('seeked', handleSeeked);
+                      }
+                    }}
                     onError={(e) => {
-                      // Si falla la imagen, mostrar SVG fallback
-                      const target = e.currentTarget as HTMLImageElement;
+                      console.warn(`❌ [VideoThumbnail] Video failed to load: ${video.title}`);
+                      // Si falla el video, mantener el poster por defecto
+                      const target = e.currentTarget as HTMLVideoElement;
                       target.style.display = 'none';
                       const parent = target.parentElement;
                       if (parent && !parent.querySelector('.fallback-thumbnail')) {
