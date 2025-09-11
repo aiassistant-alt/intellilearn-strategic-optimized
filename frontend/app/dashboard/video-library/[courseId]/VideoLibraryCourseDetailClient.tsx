@@ -305,14 +305,35 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
             >
               {/* Video Thumbnail */}
               <div className={`relative ${viewMode === 'list' ? 'w-32 h-20 flex-shrink-0 mr-4' : 'w-full h-48 mb-4'} bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden`}>
-                {/* Thumbnail con marco elegante */}
-                <div className="relative w-full h-full bg-gray-800 flex items-center justify-center">
-                  <img
-                    src={video.thumbnail}
-                    alt={video.title}
+                {/* Miniatura de video real */}
+                <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
+                  <video
+                    src={video.url}
                     className="w-full h-full object-cover"
+                    preload="metadata"
+                    muted
+                    poster="/assets/images/video-thumbnail.jpg"
+                    onLoadedMetadata={(e) => {
+                      // Capturar frame del video como miniatura (segundo 2)
+                      const videoElement = e.currentTarget as HTMLVideoElement;
+                      if (videoElement.duration > 2) {
+                        videoElement.currentTime = 2;
+                      }
+                    }}
                     onError={(e) => {
-                      e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23374151'/%3E%3Cpath d='M80 60h40v20L140 60v80l-20-20v20H80V60z' fill='%239CA3AF'/%3E%3C/svg%3E";
+                      // Si falla el video, mostrar imagen por defecto
+                      const target = e.currentTarget as HTMLVideoElement;
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `
+                          <div class="w-full h-full bg-gray-800 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 200 200" class="text-gray-400">
+                              <rect width="200" height="200" fill="currentColor" opacity="0.1"/>
+                              <path d="M80 60h40v20L140 60v80l-20-20v20H80V60z" fill="currentColor" opacity="0.6"/>
+                            </svg>
+                          </div>
+                        `;
+                      }
                     }}
                   />
                   
