@@ -15,14 +15,12 @@ import { FiDatabase, FiFolder, FiFileText, FiImage, FiVideo, FiMusic, FiUpload, 
 
 export default function LibraryClient() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState('documents')
 
   const categories = [
-    { id: 'all', label: 'Todos', icon: <FiDatabase />, count: 247 },
     { id: 'documents', label: 'Documentos', icon: <FiFileText />, count: 89 },
     { id: 'images', label: 'Imágenes', icon: <FiImage />, count: 134 },
     { id: 'videos', label: 'Videos', icon: <FiVideo />, count: 18 },
-    { id: 'audio', label: 'Audio', icon: <FiMusic />, count: 6 },
   ]
 
   const libraryItems = [
@@ -76,15 +74,12 @@ export default function LibraryClient() {
     }
   ]
 
-  const filteredItems = selectedCategory === 'all' 
-    ? libraryItems 
-    : libraryItems.filter(item => {
-        if (selectedCategory === 'documents') return item.type === 'document'
-        if (selectedCategory === 'images') return item.type === 'image'
-        if (selectedCategory === 'videos') return item.type === 'video'
-        if (selectedCategory === 'audio') return item.type === 'audio'
-        return true
-      })
+  const filteredItems = libraryItems.filter(item => {
+    if (selectedCategory === 'documents') return item.type === 'document'
+    if (selectedCategory === 'images') return item.type === 'image'
+    if (selectedCategory === 'videos') return item.type === 'video'
+    return item.type === 'document' // default to documents
+  })
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -112,23 +107,23 @@ export default function LibraryClient() {
         </button>
       </div>
 
-      {/* Categories and Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      {/* Categories - Solo 3 Cards Neumórficas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {categories.map((category) => (
           <button
             key={category.id}
             onClick={() => setSelectedCategory(category.id)}
-            className={`nm-white-card p-4 rounded-xl text-left hover:scale-105 transition-transform duration-200 ${
+            className={`nm-white-card p-6 rounded-xl text-left hover:scale-105 transition-transform duration-200 ${
               selectedCategory === category.id ? 'ring-2 ring-purple-400' : ''
             }`}
           >
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 rounded-lg bg-gray-100">
+            <div className="flex items-center space-x-4 mb-4">
+              <div className="p-3 rounded-xl bg-gray-100">
                 {category.icon}
               </div>
               <div>
-                <h3 className="font-medium text-gray-800">{category.label}</h3>
-                <p className="text-2xl font-bold text-purple-600">{category.count}</p>
+                <h3 className="text-lg font-semibold text-gray-800">{category.label}</h3>
+                <p className="text-3xl font-bold text-purple-600">{category.count}</p>
               </div>
             </div>
           </button>
@@ -188,7 +183,7 @@ export default function LibraryClient() {
       {/* Library Content */}
       <div className="nm-white-card p-6 rounded-xl">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          {selectedCategory === 'all' ? 'Todos los archivos' : categories.find(c => c.id === selectedCategory)?.label}
+          {categories.find(c => c.id === selectedCategory)?.label}
           <span className="text-gray-500 font-normal ml-2">({filteredItems.length} elementos)</span>
         </h2>
 

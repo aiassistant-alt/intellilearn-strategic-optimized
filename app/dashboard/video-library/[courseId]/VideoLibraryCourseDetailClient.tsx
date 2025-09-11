@@ -63,7 +63,16 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
         setCourseData(data)
       } catch (error) {
         console.error('❌ [VideoLibrary] Failed to load video data:', error)
-        setError('Error al cargar los videos. Por favor, intenta de nuevo.')
+        
+        // Check if it's an authentication error
+        if (error instanceof Error && (
+          error.message.includes('COGNITO_TOKEN_REQUIRED') ||
+          error.message.includes('COGNITO_TOKEN_EXPIRED')
+        )) {
+          setError('⚠️ Sesión expirada. Por favor, inicia sesión de nuevo para acceder a los videos.')
+        } else {
+          setError('Error al cargar los videos. Por favor, intenta de nuevo.')
+        }
       } finally {
         setLoading(false)
       }
@@ -219,6 +228,8 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
 
   // Error state
   if (error) {
+    const isAuthError = error.includes('Sesión expirada')
+    
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -227,12 +238,29 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
           </div>
           <h3 className="text-xl font-semibold text-gray-800 mb-2">Error al cargar videos</h3>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="nm-white-button-primary px-6 py-3 rounded-xl hover:scale-105 transition-transform duration-200"
-          >
-            Reintentar
-          </button>
+          <div className="flex justify-center space-x-4">
+            {isAuthError ? (
+              <button
+                onClick={() => router.push('/auth/login')}
+                className="nm-white-button-primary px-6 py-3 rounded-xl hover:scale-105 transition-transform duration-200"
+              >
+                Iniciar Sesión
+              </button>
+            ) : (
+              <button
+                onClick={() => window.location.reload()}
+                className="nm-white-button-primary px-6 py-3 rounded-xl hover:scale-105 transition-transform duration-200"
+              >
+                Reintentar
+              </button>
+            )}
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="nm-white-button px-6 py-3 rounded-xl hover:scale-105 transition-transform duration-200"
+            >
+              Volver al Dashboard
+            </button>
+          </div>
         </div>
       </div>
     )
