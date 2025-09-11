@@ -317,7 +317,7 @@ export default function LibraryClient() {
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
           <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full mx-4 relative" style={{
             background: 'linear-gradient(145deg, #1a1a1a, #2d2d2d)',
             boxShadow: `
