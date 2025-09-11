@@ -12,7 +12,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { FiVideo, FiGrid, FiList, FiArrowLeft, FiPlay, FiClock, FiDownload, FiShare2, FiLoader } from 'react-icons/fi'
+import { FiVideo, FiGrid, FiList, FiArrowLeft, FiPlay, FiClock, FiDownload, FiShare2, FiLoader, FiUpload, FiCheckSquare, FiSquare, FiCheck, FiX } from 'react-icons/fi'
 import { VideoContentService } from '../../../../lib/services/videoContentService'
 
 interface VideoData {
@@ -45,6 +45,8 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
   const [courseData, setCourseData] = useState<CourseVideoData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
   
   // Load video data with presigned URLs
   useEffect(() => {
@@ -89,6 +91,29 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
   const handleVideoShare = (video: VideoData) => {
     console.log('Sharing video:', video.title)
     // Here you would implement share logic
+  }
+
+  const handleVideoSelect = (videoId: string) => {
+    const newSelected = new Set(selectedVideos)
+    if (newSelected.has(videoId)) {
+      newSelected.delete(videoId)
+    } else {
+      newSelected.add(videoId)
+    }
+    setSelectedVideos(newSelected)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedVideos.size === courseData?.videos.length) {
+      setSelectedVideos(new Set())
+    } else {
+      setSelectedVideos(new Set(courseData?.videos.map(v => v.id) || []))
+    }
+  }
+
+  const handleUpload = () => {
+    console.log('📁 [VideoLibrary] Opening upload dialog...')
+    // Implementar funcionalidad de upload
   }
 
   // ESC key handler for focus mode
@@ -259,35 +284,79 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
           )}
         </div>
         
-        {/* View Mode Toggle */}
+        {/* View Controls */}
         {courseData.videos.length > 0 && (
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-600 text-sm font-medium">Vista:</span>
-              <div className="flex rounded-lg border border-gray-200 overflow-hidden">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-4 py-2 text-sm flex items-center space-x-2 transition-colors duration-200 ${
-                    viewMode === 'grid' 
-                      ? 'bg-purple-100 text-purple-700' 
-                      : 'bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <FiGrid />
-                  <span>Mosaico</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-4 py-2 text-sm flex items-center space-x-2 transition-colors duration-200 ${
-                    viewMode === 'list' 
-                      ? 'bg-purple-100 text-purple-700' 
-                      : 'bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <FiList />
-                  <span>Lista</span>
-                </button>
+            {/* Left Side - View Mode Toggle */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600 text-sm font-medium">Vista:</span>
+                <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`px-4 py-2 text-sm flex items-center space-x-2 transition-colors duration-200 ${
+                      viewMode === 'grid' 
+                        ? 'bg-purple-100 text-purple-700' 
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <FiGrid />
+                    <span>Mosaico</span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`px-4 py-2 text-sm flex items-center space-x-2 transition-colors duration-200 ${
+                      viewMode === 'list' 
+                        ? 'bg-purple-100 text-purple-700' 
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <FiList />
+                    <span>Lista</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Upload Button */}
+              <button
+                onClick={handleUpload}
+                className="nm-white-button px-4 py-2 text-sm flex items-center space-x-2 hover:scale-105 transition-transform duration-200"
+              >
+                <FiUpload />
+                <span>Subir</span>
+              </button>
+            </div>
+
+            {/* Right Side - Selection Controls */}
+            <div className="flex items-center space-x-2">
+              {selectMode && (
+                <>
+                  <span className="text-sm text-gray-600">
+                    {selectedVideos.size} seleccionados
+                  </span>
+                  <button
+                    onClick={handleSelectAll}
+                    className="nm-white-button px-3 py-2 text-sm flex items-center space-x-2 hover:scale-105 transition-transform duration-200"
+                  >
+                    <FiCheck />
+                    <span>Todos</span>
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => {
+                  setSelectMode(!selectMode)
+                  if (selectMode) setSelectedVideos(new Set())
+                }}
+                className={`px-4 py-2 text-sm flex items-center space-x-2 rounded-lg transition-colors duration-200 ${
+                  selectMode 
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                    : 'nm-white-button hover:scale-105 transition-transform duration-200'
+                }`}
+              >
+                <FiCheckSquare />
+                <span>{selectMode ? 'Cancelar' : 'Seleccionar'}</span>
+              </button>
             </div>
           </div>
         )}
@@ -299,10 +368,26 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
           {courseData.videos.map((video: VideoData, index: number) => (
             <div
               key={video.id}
-              className={`nm-white-card rounded-2xl overflow-hidden hover:scale-105 transition-transform duration-300 group ${
+              className={`nm-white-card rounded-2xl overflow-hidden hover:scale-105 transition-transform duration-300 group relative ${
                 viewMode === 'list' ? 'flex items-center p-4' : 'p-6'
-              }`}
+              } ${selectedVideos.has(video.id) ? 'ring-2 ring-blue-400' : ''}`}
             >
+              {/* Selection Checkbox */}
+              {selectMode && (
+                <div className="absolute top-3 right-3 z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleVideoSelect(video.id)
+                    }}
+                    className="w-6 h-6 rounded-md border-2 border-gray-300 bg-white flex items-center justify-center hover:border-blue-400 transition-colors duration-200"
+                  >
+                    {selectedVideos.has(video.id) && (
+                      <FiCheck className="text-blue-600 text-sm" />
+                    )}
+                  </button>
+                </div>
+              )}
               {/* Video Thumbnail */}
               <div className={`relative ${viewMode === 'list' ? 'w-32 h-20 flex-shrink-0 mr-4' : 'w-full h-48 mb-4'} bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden`}>
                 {/* Miniatura de video real */}
@@ -313,11 +398,26 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
                     preload="metadata"
                     muted
                     poster="/assets/images/video-thumbnail.jpg"
-                    onLoadedMetadata={(e) => {
+                    playsInline
+                    controls={false}
+                    onLoadedData={(e) => {
                       // Capturar frame del video como miniatura (segundo 2)
                       const videoElement = e.currentTarget as HTMLVideoElement;
                       if (videoElement.duration > 2) {
                         videoElement.currentTime = 2;
+                        // Crear canvas para capturar frame
+                        setTimeout(() => {
+                          const canvas = document.createElement('canvas');
+                          const ctx = canvas.getContext('2d');
+                          if (ctx) {
+                            canvas.width = videoElement.videoWidth;
+                            canvas.height = videoElement.videoHeight;
+                            ctx.drawImage(videoElement, 0, 0);
+                            const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+                            // Usar como poster
+                            videoElement.poster = dataURL;
+                          }
+                        }, 100);
                       }
                     }}
                     onError={(e) => {

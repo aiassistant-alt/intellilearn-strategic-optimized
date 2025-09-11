@@ -42,7 +42,8 @@ import {
   FiToggleLeft,
   FiToggleRight,
   FiChevronDown,
-  FiVideo
+  FiVideo,
+  FiDatabase
 } from 'react-icons/fi';
 import { useAuth } from '@/lib/AuthContext'
 import { useUserMode } from '@/lib/contexts/UserModeContext';
@@ -140,7 +141,8 @@ export const Sidebar = () => {
     { path: '/dashboard/courses', label: 'My Courses', icon: <FiBookOpen /> },
     { path: '/dashboard/assignments', label: 'My Tasks', icon: <FiFileText /> },
     ...(userMode === 'admin' ? [
-      { path: '/dashboard/video-library', label: 'Video Library', icon: <FiVideo /> }
+      { path: '/dashboard/video-library', label: 'Video Library', icon: <FiVideo /> },
+      { path: '/dashboard/library', label: 'Library', icon: <FiDatabase /> }
     ] : []),
   ]
 
