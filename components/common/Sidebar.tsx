@@ -41,7 +41,8 @@ import {
   FiFileText,
   FiToggleLeft,
   FiToggleRight,
-  FiChevronDown
+  FiChevronDown,
+  FiVideo
 } from 'react-icons/fi';
 import { useAuth } from '@/lib/AuthContext'
 import { useUserMode } from '@/lib/contexts/UserModeContext';
@@ -138,6 +139,9 @@ export const Sidebar = () => {
     { path: '/dashboard', label: 'My Progress', icon: <FiTrendingUp /> },
     { path: '/dashboard/courses', label: 'My Courses', icon: <FiBookOpen /> },
     { path: '/dashboard/assignments', label: 'My Tasks', icon: <FiFileText /> },
+    ...(userMode === 'admin' ? [
+      { path: '/dashboard/video-library', label: 'Video Library', icon: <FiVideo /> }
+    ] : []),
   ]
 
   /**
@@ -173,7 +177,8 @@ export const Sidebar = () => {
           <div className="neuro-container p-4 rounded-lg">
             <StaticLink href="/dashboard" className="block">
               {isCollapsed ? (
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                     style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-quaternary))' }}>
                   C
                 </div>
               ) : (
@@ -231,9 +236,9 @@ export const Sidebar = () => {
                           : 'text-gray-700 hover:text-gray-900'
                       }`}
                       style={isActive(item.path) ? {
-                        background: 'linear-gradient(135deg, var(--cognia-blue-dark), var(--cognia-blue-purple))',
-                        color: 'white',
-                        boxShadow: '0 2px 8px rgba(19, 41, 68, 0.25)'
+                        background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                        color: '#000000',
+                        boxShadow: '0 2px 8px rgba(187, 134, 252, 0.25)'
                       } : {}}
                     >
                       <span className="text-lg">{item.icon}</span>
@@ -270,9 +275,9 @@ export const Sidebar = () => {
                           : 'text-gray-700 hover:text-gray-900'
                       }`}
                       style={isActive(item.path) ? {
-                        background: 'linear-gradient(135deg, var(--cognia-blue-dark), var(--cognia-blue-purple))',
-                        color: 'white',
-                        boxShadow: '0 2px 8px rgba(19, 41, 68, 0.25)'
+                        background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                        color: '#000000',
+                        boxShadow: '0 2px 8px rgba(187, 134, 252, 0.25)'
                       } : {}}
                     >
                       <span className="text-lg">{item.icon}</span>

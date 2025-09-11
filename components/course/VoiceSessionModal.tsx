@@ -387,10 +387,10 @@ export default function VoiceSessionModal({
       const config = await novaConfigService.getConfiguration(configId)
       
       // Generate voice session data
-      const sessionData = {
+    const sessionData = {
         title: title || `Sesión Nova Sonic - ${config.configName}`,
         description: description || `Sesión interactiva con ${config.configName} en ${moduleTitle}`,
-        type: 'voice_session' as const,
+      type: 'voice_session' as const,
         content: JSON.stringify({
           configId: configId,
           configName: config.configName,
@@ -408,7 +408,7 @@ export default function VoiceSessionModal({
       console.log('✅ Voice session generated:', sessionData)
       
       // Call onSave to create the lesson
-      onSave(sessionData)
+    onSave(sessionData)
       
       // Close modal
       onClose()
@@ -517,38 +517,38 @@ La sesión está activa. Puedes hablar ahora para probar la configuración.`)
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Título de la Lección
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                   className="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 text-gray-800 dark:text-white"
                   placeholder={`Sesión Nova Sonic - ${moduleTitle}`}
                   style={{
                     boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.1), inset -2px -2px 4px rgba(255,255,255,0.1)'
                   }}
-                />
-              </div>
-              
-              <div>
+              />
+            </div>
+
+            <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Descripción
-                </label>
+                Descripción
+              </label>
                 <input
                   type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                   className="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 text-gray-800 dark:text-white"
                   placeholder={`Sesión interactiva de voz en ${moduleTitle}`}
                   style={{
                     boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.1), inset -2px -2px 4px rgba(255,255,255,0.1)'
                   }}
-                />
-              </div>
+              />
             </div>
+          </div>
           </div>
           
           {/* View Controls */}
@@ -589,7 +589,7 @@ La sesión está activa. Puedes hablar ahora para probar la configuración.`)
               <FaPlus className="inline mr-2" />
               Nueva Configuración
             </button>
-          </div>
+              </div>
 
           {/* List View */}
           {currentView === 'list' && (
@@ -625,8 +625,8 @@ La sesión está activa. Puedes hablar ahora para probar la configuración.`)
                           <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
                             Última modificación: {new Date(config.lastModified).toLocaleDateString()}
                           </p>
-                        </div>
-                        
+                </div>
+
                         <div className="flex space-x-2">
                           <button
                             onClick={() => generateVoiceSession(config.id)}
@@ -717,10 +717,10 @@ La sesión está activa. Puedes hablar ahora para probar la configuración.`)
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+                <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Nombre de la Configuración *
-              </label>
+                  </label>
               <input
                 type="text"
                       value={configForm.configName}
@@ -731,12 +731,12 @@ La sesión está activa. Puedes hablar ahora para probar la configuración.`)
                       }}
                       placeholder="Ej: Configuración Personalizada para Matemáticas"
               />
-            </div>
+                </div>
 
-            <div>
+                <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Descripción
-              </label>
+                  </label>
                     <input
                       type="text"
                       value={configForm.configDescription}
@@ -749,7 +749,7 @@ La sesión está activa. Puedes hablar ahora para probar la configuración.`)
               />
             </div>
           </div>
-              </div>
+                </div>
 
               {/* Model Configuration */}
               <div className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"

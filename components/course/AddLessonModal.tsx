@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { FaPlay, FaBookOpen, FaQuestionCircle, FaClipboardList, FaArrowRight, FaArrowLeft, FaSave, FaCheck, FaUpload, FaSpinner, FaMicrophone, FaImage, FaTimes, FaPlus } from 'react-icons/fa'
+import { FaPlay, FaBookOpen, FaQuestionCircle, FaClipboardList, FaArrowRight, FaArrowLeft, FaSave, FaCheck, FaUpload, FaSpinner, FaMicrophone, FaImage, FaTimes, FaPlus, FaCloudUploadAlt, FaLink, FaTrash } from 'react-icons/fa'
 import * as novaConfigService from '../../lib/services/novaConfigService'
 
 interface AddLessonModalProps {
@@ -97,6 +97,8 @@ export default function AddLessonModal({
   const [currentStep, setCurrentStep] = useState<Step>(Step.TYPE_SELECTION)
   const [loading, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const [uploadMethod, setUploadMethod] = useState<'url' | 'file'>('url')
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [formData, setFormData] = useState({
@@ -120,6 +122,12 @@ export default function AddLessonModal({
       duration: '',
       order: lessonCount + 1
     })
+    setDragOver(false)
+    setUploadMethod('url')
+    setUploading(false)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
     onClose()
   }
 
@@ -129,14 +137,14 @@ export default function AddLessonModal({
         setCurrentStep(Step.BASIC_INFO)
         break
       case Step.BASIC_INFO:
-        setCurrentStep(Step.CONTENT)
-        break
-      case Step.CONTENT:
         if (formData.type === 'video') {
           setCurrentStep(Step.MEDIA)
         } else {
-          setCurrentStep(Step.CONFIRMATION)
+          setCurrentStep(Step.CONTENT)
         }
+        break
+      case Step.CONTENT:
+        setCurrentStep(Step.CONFIRMATION)
         break
       case Step.MEDIA:
         setCurrentStep(Step.CONFIRMATION)
@@ -153,7 +161,7 @@ export default function AddLessonModal({
         setCurrentStep(Step.BASIC_INFO)
         break
       case Step.MEDIA:
-        setCurrentStep(Step.CONTENT)
+        setCurrentStep(Step.BASIC_INFO)
         break
       case Step.CONFIRMATION:
         if (formData.type === 'video') {
@@ -165,25 +173,103 @@ export default function AddLessonModal({
     }
   }
 
-  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+  const handleVideoUpload = async (file: File) => {
     if (!file) return
+
+    // Validate file type
+    const validTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov', 'video/wmv']
+    if (!validTypes.includes(file.type)) {
+      alert('Por favor selecciona un archivo de video válido (MP4, WebM, OGG, AVI, MOV, WMV)')
+      return
+    }
+
+    // Validate file size (100MB max)
+    const maxSize = 100 * 1024 * 1024 // 100MB
+    if (file.size > maxSize) {
+      alert('El archivo es demasiado grande. Tamaño máximo: 100MB')
+      return
+    }
 
     try {
       setUploading(true)
       const videoUrl = await onUploadFile(file, 'videos')
       setFormData(prev => ({ ...prev, videoUrl }))
+      setUploadMethod('file')
     } catch (error) {
       console.error('Error uploading video:', error)
+      alert('Error al subir el video. Intenta nuevamente.')
     } finally {
       setUploading(false)
     }
   }
 
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      handleVideoUpload(file)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length > 0) {
+      handleVideoUpload(files[0])
+    }
+  }
+
+  const clearVideo = () => {
+    setFormData(prev => ({ ...prev, videoUrl: '' }))
+    setUploadMethod('url')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Convert YouTube URL to embed URL
+  const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return null
+    
+    // Match various YouTube URL formats
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}`
+    }
+    
+    // If it's already an embed URL, return as is
+    if (url.includes('youtube.com/embed/')) {
+      return url
+    }
+    
+    // For other video URLs, return as is for now
+    return url
+  }
+
   const handleSave = async () => {
     try {
       setSaving(true)
-      await onSave(formData)
+      
+      // For video lessons, set content automatically if empty
+      const lessonData = { ...formData }
+      if (formData.type === 'video' && !formData.content.trim()) {
+        lessonData.content = `<h3>Video Lección: ${formData.title}</h3><p>${formData.description}</p>`
+      }
+      
+      await onSave(lessonData)
       handleClose()
     } catch (error) {
       console.error('Error saving lesson:', error)
@@ -201,7 +287,7 @@ export default function AddLessonModal({
       case Step.CONTENT:
         return formData.content.trim().length > 0
       case Step.MEDIA:
-        return formData.type !== 'video' || formData.videoUrl.trim().length > 0
+        return formData.videoUrl.trim().length > 0
       case Step.CONFIRMATION:
         return true
       default:
@@ -285,25 +371,34 @@ export default function AddLessonModal({
           {/* Progress Indicator */}
           <div className="mb-8">
         <div className="flex items-center justify-center space-x-2">
-          {[Step.TYPE_SELECTION, Step.BASIC_INFO, Step.CONTENT, ...(formData.type === 'video' ? [Step.MEDIA] : []), Step.CONFIRMATION].map((step, index) => {
-            const isActive = currentStep === step
-            const isCompleted = [Step.TYPE_SELECTION, Step.BASIC_INFO, Step.CONTENT, Step.MEDIA].indexOf(currentStep) > [Step.TYPE_SELECTION, Step.BASIC_INFO, Step.CONTENT, Step.MEDIA].indexOf(step)
+          {(() => {
+            // Define different step flows based on lesson type
+            const videoSteps = [Step.TYPE_SELECTION, Step.BASIC_INFO, Step.MEDIA, Step.CONFIRMATION]
+            const otherSteps = [Step.TYPE_SELECTION, Step.BASIC_INFO, Step.CONTENT, Step.CONFIRMATION]
+            const steps = formData.type === 'video' ? videoSteps : otherSteps
             
-            return (
-              <div key={step} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  isActive ? 'nm-white-button-active' : 
-                  isCompleted ? 'nm-white-button-completed' : 
-                  'nm-white-button-inactive'
-                }`}>
-                  {isCompleted ? <FaCheck /> : index + 1}
+            return steps.map((step, index) => {
+              const isActive = currentStep === step
+              const currentStepIndex = steps.indexOf(currentStep)
+              const stepIndex = steps.indexOf(step)
+              const isCompleted = currentStepIndex > stepIndex
+              
+              return (
+                <div key={step} className="flex items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    isActive ? 'nm-white-button-active' : 
+                    isCompleted ? 'nm-white-button-completed' : 
+                    'nm-white-button-inactive'
+                  }`}>
+                    {isCompleted ? <FaCheck /> : index + 1}
+                  </div>
+                  {index < (steps.length - 1) && (
+                    <div className={`w-8 h-0.5 mx-2 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`} />
+                  )}
                 </div>
-                {index < ([Step.TYPE_SELECTION, Step.BASIC_INFO, Step.CONTENT, ...(formData.type === 'video' ? [Step.MEDIA] : []), Step.CONFIRMATION].length - 1) && (
-                  <div className={`w-8 h-0.5 mx-2 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`} />
-                )}
-              </div>
-            )
-          })}
+              )
+            })
+          })()}
         </div>
       </div>
 
@@ -492,56 +587,146 @@ Ejemplos de formato:
               <div className="nm-white-icon-large w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <FaPlay className="text-2xl text-red-500" />
               </div>
-              <p className="text-gray-600">Agrega el video para tu lección</p>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Material de Video</h3>
+              <p className="text-gray-600">Agrega el video para tu lección usando una URL o subiendo un archivo</p>
             </div>
-            
-            <div>
-              <label className="block text-gray-700 font-medium mb-3">URL del Video o Subir Archivo</label>
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  value={formData.videoUrl}
-                  onChange={(e) => setFormData(prev => ({ ...prev, videoUrl: e.target.value }))}
-                  placeholder="https://youtube.com/watch?v=... o URL directa del video"
-                  className="nm-white-input w-full px-4 py-3 rounded-lg text-gray-800"
-                />
-                
-                <div className="text-center">
-                  <span className="text-gray-500">o</span>
-                </div>
-                
-                <div className="nm-white-upload-area border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="nm-white-button-primary px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto transition-all duration-300 disabled:opacity-50"
-                  >
-                    {uploading ? <FaSpinner className="animate-spin" /> : <FaUpload />}
-                    <span>{uploading ? 'Subiendo...' : 'Subir Video'}</span>
-                  </button>
-                  <p className="text-gray-500 text-sm mt-2">
-                    Formatos soportados: MP4, MOV, AVI (máx. 100MB)
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="video/*"
-                    onChange={handleVideoUpload}
-                    className="hidden"
-                  />
-                </div>
-                
-                {formData.videoUrl && (
-                  <div className="nm-white-success-box rounded-lg p-4">
-                    <div className="flex items-center space-x-2 text-green-600">
-                      <FaCheck />
-                      <span className="font-medium">Video configurado</span>
-                    </div>
-                    <p className="text-gray-600 text-sm mt-1 truncate">{formData.videoUrl}</p>
-                  </div>
-                )}
+
+            {/* Method Selection */}
+            <div className="flex justify-center mb-6">
+              <div className="nm-white-card p-2 rounded-lg flex">
+                <button
+                  onClick={() => setUploadMethod('url')}
+                  className={`px-4 py-2 rounded-md transition-all duration-300 flex items-center space-x-2 ${
+                    uploadMethod === 'url' 
+                      ? 'primary-action text-black' 
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  <FaLink />
+                  <span>URL del Video</span>
+                </button>
+                <button
+                  onClick={() => setUploadMethod('file')}
+                  className={`px-4 py-2 rounded-md transition-all duration-300 flex items-center space-x-2 ${
+                    uploadMethod === 'file' 
+                      ? 'primary-action text-black' 
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  <FaCloudUploadAlt />
+                  <span>Subir Archivo</span>
+                </button>
               </div>
             </div>
+            
+            {/* URL Input */}
+            {uploadMethod === 'url' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-3">URL del Video</label>
+                  <input
+                    type="text"
+                    value={formData.videoUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, videoUrl: e.target.value }))}
+                    placeholder="https://youtube.com/watch?v=... o URL directa del video"
+                    className="nm-white-input w-full px-4 py-3 rounded-lg text-gray-800"
+                  />
+                  <p className="text-gray-500 text-sm mt-2">
+                    Soporta: YouTube, Vimeo, URLs directas de video (MP4, WebM, etc.)
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* File Upload */}
+            {uploadMethod === 'file' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-3">Subir Archivo de Video</label>
+                  
+                  {/* Drag & Drop Zone */}
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`nm-white-upload-area border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
+                      dragOver 
+                        ? 'border-purple-400 bg-purple-50' 
+                        : uploading 
+                          ? 'border-blue-400 bg-blue-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {uploading ? (
+                      <div className="space-y-4">
+                        <FaSpinner className="animate-spin text-4xl text-blue-500 mx-auto" />
+                        <div>
+                          <p className="text-blue-600 font-medium">Subiendo video...</p>
+                          <p className="text-gray-500 text-sm">Por favor espera</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <FaCloudUploadAlt className="text-6xl text-gray-400 mx-auto" />
+                        <div>
+                          <p className="text-gray-700 font-medium text-lg">
+                            {dragOver ? 'Suelta el archivo aquí' : 'Arrastra y suelta tu video aquí'}
+                          </p>
+                          <p className="text-gray-500 text-sm mb-4">o</p>
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="primary-action px-6 py-3 rounded-lg transition-all duration-300 hover:scale-105"
+                          >
+                            Seleccionar Archivo
+                          </button>
+                        </div>
+                        <div className="text-gray-500 text-sm space-y-1">
+                          <p>Formatos soportados: MP4, WebM, OGG, AVI, MOV, WMV</p>
+                          <p>Tamaño máximo: 100MB</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="video/*"
+                      onChange={handleFileInputChange}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Video Preview/Confirmation */}
+            {formData.videoUrl && (
+              <div className="nm-white-card rounded-xl p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3 flex-1">
+                    <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                      <FaCheck className="text-green-600 text-xl" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-800">Video configurado correctamente</p>
+                      <p className="text-gray-500 text-sm mt-1 break-all">{formData.videoUrl}</p>
+                      {uploadMethod === 'file' && (
+                        <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full mt-2">
+                          Archivo subido
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={clearVideo}
+                    className="text-gray-400 hover:text-red-500 transition-colors duration-200 p-2"
+                    title="Eliminar video"
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -600,11 +785,35 @@ Ejemplos de formato:
               
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <label className="text-gray-500 text-sm font-medium">Vista previa del contenido:</label>
-                <div className="nm-white-preview-box rounded-lg p-4 mt-2 max-h-32 overflow-y-auto">
-                  <div 
-                    className="text-gray-700 text-sm prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formData.content.substring(0, 200) + (formData.content.length > 200 ? '...' : '') }}
-                  />
+                <div className="nm-white-preview-box rounded-lg p-4 mt-2 max-h-40 overflow-y-auto">
+                  {formData.type === 'video' && formData.videoUrl ? (
+                    <div className="space-y-3">
+                      <div className="text-gray-700 text-sm">
+                        <strong>Descripción:</strong> {formData.description}
+                      </div>
+                      {getYouTubeEmbedUrl(formData.videoUrl) && (
+                        <div className="relative">
+                          <iframe
+                            src={getYouTubeEmbedUrl(formData.videoUrl) || ''}
+                            className="w-full h-32 rounded-lg border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title="Video Preview"
+                          />
+                        </div>
+                      )}
+                      {!getYouTubeEmbedUrl(formData.videoUrl)?.includes('youtube.com') && (
+                        <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded border">
+                          📹 Video URL: {formData.videoUrl}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div 
+                      className="text-gray-700 text-sm prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: formData.content.substring(0, 200) + (formData.content.length > 200 ? '...' : '') }}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -975,7 +1184,7 @@ Ejemplos de formato:
           background: rgba(99, 102, 241, 0.3) !important;
         }
 
-        /* Dark mode progress indicators */
+        /* Dark mode progress indicators - SIN GLOW BLANCO */
         [data-theme="dark"] .nm-white-button-active {
           background: #8b5cf6 !important;
           color: #ffffff !important;
@@ -987,6 +1196,15 @@ Ejemplos de formato:
         [data-theme="dark"] .nm-white-button-completed {
           background: #6366f1 !important;
           color: #ffffff !important;
+        }
+
+        /* Dark mode preview box - SIN GLOW BLANCO */
+        [data-theme="dark"] .nm-white-preview-box {
+          background: #2a2a2a !important;
+          box-shadow: 
+            inset 3px 3px 6px #0f0f0f,
+            inset -3px -3px 6px #353535;
+          border: 1px solid rgba(139, 92, 246, 0.2);
         }
 
         [data-theme="dark"] .nm-white-button-inactive {

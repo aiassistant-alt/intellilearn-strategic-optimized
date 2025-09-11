@@ -14,11 +14,24 @@
   --text-secondary: #a0a0a0;
   --text-muted: #606060;
   
-  /* Acentos azul/lila digitales */
-  --accent-primary: #8b5cf6;    /* Púrpura violeta */
-  --accent-secondary: #6366f1;  /* Índigo */
-  --accent-tertiary: #a78bfa;   /* Púrpura claro */
-  --accent-border: rgba(99, 102, 241, 0.3);  /* Azul/índigo translúcido */
+/* Acentos púrpura Material Design - SIN GLOW */
+--accent-primary: #BB86FC;    /* Primary Purple Material Design */
+--accent-secondary: #9C64F7;  /* Purple 500 */
+--accent-tertiary: #D4B8FF;   /* Purple 200 */
+--accent-quaternary: #7B45F0; /* Purple 700 */
+--accent-border: rgba(187, 134, 252, 0.3);  /* Primary Purple translúcido */
+--accent-border-subtle: rgba(187, 134, 252, 0.15);  /* Muy sutil */
+
+/* Nuevas clases neumórficas para video modal */
+.nm-white-text-shadow {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nm-inset-card {
+  background: #f0f0f0;
+  box-shadow: inset 8px 8px 16px rgba(0, 0, 0, 0.1), 
+              inset -8px -8px 16px rgba(255, 255, 255, 0.8);
+}
   
   /* Sombras neumórficas MATE - Solo negro y gris */
   --shadow-light: rgba(50, 50, 50, 0.2);
@@ -579,16 +592,16 @@
 }
 
 /* ===========================================
-   ACENTOS AZUL/LILA DIGITALES - SIN GLOW
+   MATERIAL DESIGN PURPLE THEME - SIN GLOW
    =========================================== */
 
-/* Botones primarios con acento azul/lila */
+/* Botones primarios con Material Design Purple */
 [data-theme="dark"] .btn-primary,
 [data-theme="dark"] .primary-action,
 [data-theme="dark"] .cta-button,
 [data-theme="dark"] .action-button-primary {
   background: var(--accent-primary) !important;
-  color: #ffffff !important;
+  color: #000000 !important; /* Texto negro sobre purple primary */
   border: 1px solid var(--accent-secondary) !important;
 }
 
@@ -598,6 +611,20 @@
 [data-theme="dark"] .action-button-secondary {
   border: 1px solid var(--accent-border) !important;
   color: var(--accent-tertiary) !important;
+}
+
+/* Botones outline purple */
+[data-theme="dark"] .btn-outline-purple,
+[data-theme="dark"] .outline-action {
+  background: transparent !important;
+  border: 2px solid var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-theme="dark"] .btn-outline-purple:hover,
+[data-theme="dark"] .outline-action:hover {
+  background: var(--accent-primary) !important;
+  color: #000000 !important;
 }
 
 /* Enlaces y navegación con acento azul/lila */
@@ -631,20 +658,39 @@
   border-color: var(--accent-border) !important;
 }
 
-/* Progress bars con acento */
+/* Progress bars con Material Purple */
 [data-theme="dark"] .progress-bar,
 [data-theme="dark"] .completion-bar,
 [data-theme="dark"] .progress-fill {
+  background: var(--accent-primary) !important;
+}
+
+/* Progress bars secundarias */
+[data-theme="dark"] .progress-secondary {
   background: var(--accent-secondary) !important;
 }
 
-/* Badges y etiquetas con acento */
+/* Badges y etiquetas con Material Purple */
 [data-theme="dark"] .badge-primary,
 [data-theme="dark"] .tag-primary,
 [data-theme="dark"] .status-active,
 [data-theme="dark"] .chip-active {
   background: var(--accent-primary) !important;
+  color: #000000 !important; /* Texto negro sobre purple */
+}
+
+/* Badges secundarios */
+[data-theme="dark"] .badge-secondary,
+[data-theme="dark"] .tag-secondary {
+  background: var(--accent-quaternary) !important;
   color: #ffffff !important;
+}
+
+/* Chips outline */
+[data-theme="dark"] .chip-outline {
+  background: transparent !important;
+  border: 1px solid var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
 }
 
 /* Separadores con acento sutil */
@@ -685,4 +731,116 @@
 [data-theme="dark"] .primary-link:hover,
 [data-theme="dark"] .nav-primary:hover {
   color: var(--accent-primary) !important;
+}
+
+/* ===========================================
+   INPUTS Y FORMS CON MATERIAL PURPLE
+   =========================================== */
+
+/* Input focus con Material Purple */
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: var(--accent-primary) !important;
+  outline: none !important;
+}
+
+/* Input focus ring sutil */
+[data-theme="dark"] .nm-input:focus,
+[data-theme="dark"] .nm-white-input:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 
+    inset 3px 3px 6px rgba(0, 0, 0, 0.8),
+    inset -3px -3px 6px rgba(50, 50, 50, 0.2),
+    0 0 0 1px var(--accent-border-subtle) !important;
+}
+
+/* Checkboxes y radios */
+[data-theme="dark"] input[type="checkbox"]:checked,
+[data-theme="dark"] input[type="radio"]:checked {
+  background: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+/* Select dropdown */
+[data-theme="dark"] select option:checked {
+  background: var(--accent-quaternary) !important;
+}
+
+/* ===========================================
+   TABS Y NAVEGACIÓN MEJORADA
+   =========================================== */
+
+/* Tabs activos */
+[data-theme="dark"] .tab-list .tab.active,
+[data-theme="dark"] .nav-tabs .nav-link.active {
+  color: var(--accent-primary) !important;
+  border-bottom-color: var(--accent-primary) !important;
+}
+
+/* Sidebar nav activo */
+[data-theme="dark"] .sidebar-nav .nav-item.active,
+[data-theme="dark"] .sidebar-nav .nav-link.active {
+  background: rgba(187, 134, 252, 0.1) !important;
+  color: var(--accent-primary) !important;
+  border-left: 3px solid var(--accent-primary) !important;
+}
+
+/* Breadcrumbs */
+[data-theme="dark"] .breadcrumb .breadcrumb-item.active {
+  color: var(--accent-primary) !important;
+}
+
+[data-theme="dark"] .breadcrumb .breadcrumb-item a:hover {
+  color: var(--accent-tertiary) !important;
+}
+
+/* ===========================================
+   ALERTAS Y NOTIFICACIONES
+   =========================================== */
+
+/* Alerts purple */
+[data-theme="dark"] .alert-purple,
+[data-theme="dark"] .notification-purple {
+  background: rgba(187, 134, 252, 0.1) !important;
+  border: 1px solid var(--accent-border) !important;
+  color: var(--accent-tertiary) !important;
+}
+
+/* Toast notifications */
+[data-theme="dark"] .toast-success {
+  border-left: 4px solid var(--accent-primary) !important;
+}
+
+/* ===========================================
+   LOADING Y SPINNERS
+   =========================================== */
+
+/* Spinners purple */
+[data-theme="dark"] .spinner-purple,
+[data-theme="dark"] .loading-purple {
+  border-top-color: var(--accent-primary) !important;
+}
+
+/* Progress ring */
+[data-theme="dark"] .progress-ring-purple {
+  stroke: var(--accent-primary) !important;
+}
+
+/* ===========================================
+   MODALES Y OVERLAYS
+   =========================================== */
+
+/* Modal headers con accent */
+[data-theme="dark"] .modal-header-accent {
+  border-bottom: 1px solid var(--accent-border) !important;
+}
+
+[data-theme="dark"] .modal-title-accent {
+  color: var(--accent-primary) !important;
+}
+
+/* Overlay backdrop sutil */
+[data-theme="dark"] .overlay-purple {
+  background: rgba(187, 134, 252, 0.05) !important;
 }
