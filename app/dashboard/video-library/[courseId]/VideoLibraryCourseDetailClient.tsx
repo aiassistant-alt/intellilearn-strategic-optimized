@@ -419,11 +419,11 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
               {/* Video Thumbnail */}
               <div className={`relative ${viewMode === 'list' ? 'w-32 h-20 flex-shrink-0 mr-4' : 'w-full h-48 mb-4'} bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg overflow-hidden`}>
                 {/* Miniatura de video real */}
-                <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
+                <div className="relative w-full h-full bg-gray-200 dark:bg-gray-900 rounded-lg overflow-hidden">
                   {/* Miniaturas dinámicas de video - CORS configurado ✅ */}
                   <video
                     src={video.url}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover dark:brightness-110 dark:contrast-110"
                     preload="metadata"
                     muted
                     poster="/assets/images/video-thumbnail.jpg"
