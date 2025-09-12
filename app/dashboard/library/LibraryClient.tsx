@@ -315,22 +315,14 @@ export default function LibraryClient() {
         )}
       </div>
 
-      {/* Upload Modal */}
+      {/* Upload Modal - Adaptativo para modo claro y oscuro */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full mx-4 relative" style={{
-            background: 'linear-gradient(145deg, #1a1a1a, #2d2d2d)',
-            boxShadow: `
-              20px 20px 40px rgba(0, 0, 0, 0.5),
-              -20px -20px 40px rgba(60, 60, 60, 0.1),
-              inset 8px 8px 16px rgba(0, 0, 0, 0.2),
-              inset -8px -8px 16px rgba(60, 60, 60, 0.1)
-            `
-          }}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 max-w-md w-full mx-4 relative nm-white-card dark:nm-dark-card">
             {/* Close Button */}
             <button
               onClick={() => setShowUploadModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200"
+              className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors duration-200"
               disabled={isUploading}
             >
               <FiX className="text-xl" />
@@ -338,8 +330,8 @@ export default function LibraryClient() {
 
             {/* Modal Header */}
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">Subir Documento</h2>
-              <p className="text-gray-400">Arrastra y suelta tu archivo o haz click para seleccionar</p>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Subir Documento</h2>
+              <p className="text-gray-600 dark:text-gray-400">Arrastra y suelta tu archivo o haz click para seleccionar</p>
             </div>
 
             {/* Drag & Drop Zone */}
@@ -347,7 +339,7 @@ export default function LibraryClient() {
               className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
                 isDragOver 
                   ? 'border-purple-400 bg-purple-500 bg-opacity-10' 
-                  : 'border-gray-600 hover:border-gray-500'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -370,19 +362,19 @@ export default function LibraryClient() {
                   <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-green-500 bg-opacity-20 flex items-center justify-center">
                     <FiCheck className="text-green-400 text-2xl" />
                   </div>
-                  <h3 className="text-white font-medium mb-2">Archivo seleccionado</h3>
-                  <p className="text-gray-400">{uploadedFiles[0].name}</p>
+                  <h3 className="text-gray-800 dark:text-white font-medium mb-2">Archivo seleccionado</h3>
+                  <p className="text-gray-600 dark:text-gray-400">{uploadedFiles[0].name}</p>
                   <p className="text-gray-500 text-sm mt-1">
                     {(uploadedFiles[0].size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
               ) : (
                 <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-700 flex items-center justify-center">
-                    <FiUpload className="text-gray-400 text-2xl" />
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                    <FiUpload className="text-gray-500 dark:text-gray-400 text-2xl" />
                   </div>
-                  <h3 className="text-white font-medium mb-2">Selecciona tu archivo</h3>
-                  <p className="text-gray-400 mb-2">Arrastra y suelta aquí</p>
+                  <h3 className="text-gray-800 dark:text-white font-medium mb-2">Selecciona tu archivo</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-2">Arrastra y suelta aquí</p>
                   <p className="text-gray-500 text-sm">Soporta: PDF, DOC, DOCX, TXT, XLSX, PPT, PPTX</p>
                 </div>
               )}
@@ -391,14 +383,14 @@ export default function LibraryClient() {
             {/* Document Name Input */}
             {uploadedFiles.length > 0 && (
               <div className="mt-6">
-                <label className="block text-white font-medium mb-2">
+                <label className="block text-gray-800 dark:text-white font-medium mb-2">
                   Nombre del documento
                 </label>
                 <input
                   type="text"
                   value={documentName}
                   onChange={(e) => setDocumentName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 transition-colors duration-200"
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-purple-400 transition-colors duration-200"
                   placeholder="Ingresa el nombre del documento"
                   disabled={isUploading}
                 />
@@ -409,7 +401,7 @@ export default function LibraryClient() {
             <div className="flex justify-end space-x-3 mt-8">
               <button
                 onClick={() => setShowUploadModal(false)}
-                className="px-6 py-3 rounded-xl bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors duration-200"
+                className="px-6 py-3 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
                 disabled={isUploading}
               >
                 Cancelar

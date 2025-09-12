@@ -417,7 +417,7 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
                 </div>
               )}
               {/* Video Thumbnail */}
-              <div className={`relative ${viewMode === 'list' ? 'w-32 h-20 flex-shrink-0 mr-4' : 'w-full h-48 mb-4'} bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden`}>
+              <div className={`relative ${viewMode === 'list' ? 'w-32 h-20 flex-shrink-0 mr-4' : 'w-full h-48 mb-4'} bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg overflow-hidden`}>
                 {/* Miniatura de video real */}
                 <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
                   {/* Miniaturas dinámicas de video - CORS configurado ✅ */}
