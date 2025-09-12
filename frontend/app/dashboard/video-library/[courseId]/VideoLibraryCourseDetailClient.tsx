@@ -52,35 +52,42 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
   const [uploadProgress, setUploadProgress] = useState(0)
   
   // Load video data with presigned URLs
-  useEffect(() => {
-    const loadVideoData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        console.log('📹 [VideoLibrary] Loading video data for course:', courseId)
-        
-        const videoService = new VideoContentService()
-        const data = await videoService.getCourseVideoData(courseId)
-        
-        console.log('✅ [VideoLibrary] Video data loaded successfully:', data)
-        setCourseData(data)
-      } catch (error) {
-        console.error('❌ [VideoLibrary] Failed to load video data:', error)
-        
-        // Check if it's an authentication error
-        if (error instanceof Error && (
-          error.message.includes('COGNITO_TOKEN_REQUIRED') ||
-          error.message.includes('COGNITO_TOKEN_EXPIRED')
-        )) {
-          setError('⚠️ Sesión expirada. Por favor, inicia sesión de nuevo para acceder a los videos.')
-        } else {
-          setError('Error al cargar los videos. Por favor, intenta de nuevo.')
-        }
-      } finally {
-        setLoading(false)
+  // Función para cargar datos de video (reutilizable para refresh)
+  const loadVideoData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('📹 [VideoLibrary] Loading video data for course:', courseId)
+      
+      const videoService = new VideoContentService()
+      const data = await videoService.getCourseVideoData(courseId)
+      
+      console.log('✅ [VideoLibrary] Video data loaded successfully:', data)
+      setCourseData(data)
+    } catch (error) {
+      console.error('❌ [VideoLibrary] Failed to load video data:', error)
+      
+      // Check if it's an authentication error
+      if (error instanceof Error && (
+        error.message.includes('COGNITO_TOKEN_REQUIRED') ||
+        error.message.includes('COGNITO_TOKEN_EXPIRED')
+      )) {
+        setError('⚠️ Sesión expirada. Por favor, inicia sesión de nuevo para acceder a los videos.')
+      } else {
+        setError('Error al cargar los videos. Por favor, intenta de nuevo.')
       }
+    } finally {
+      setLoading(false)
     }
+  }
 
+  // Función para refrescar datos después del upload
+  const refreshVideoData = async () => {
+    console.log('🔄 [VideoLibrary] Refreshing video data after upload...')
+    await loadVideoData()
+  }
+
+  useEffect(() => {
     loadVideoData()
   }, [courseId])
   
@@ -145,12 +152,14 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
 
       console.log('✅ [VideoLibrary] File uploaded successfully')
       
-      // Mostrar mensaje de éxito sin recargar la página
-      alert('✅ Video subido exitosamente! La funcionalidad de upload real se implementará próximamente.')
-      
       setShowUploadModal(false)
-      // NO recargar la página para evitar errores 403
-      // window.location.reload() - REMOVIDO
+      
+      // Refrescar datos después del upload exitoso
+      await refreshVideoData()
+      
+      // Mostrar mensaje de éxito después del refresh
+      alert('✅ Video subido exitosamente! La lista se ha actualizado.')
+      
     } catch (error) {
       console.error('❌ [VideoLibrary] Upload failed:', error)
       alert('❌ Error al subir el video. Por favor intenta nuevamente.')
