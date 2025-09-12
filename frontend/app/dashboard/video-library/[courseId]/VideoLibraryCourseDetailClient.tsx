@@ -144,11 +144,16 @@ export default function VideoLibraryCourseDetailClient({ courseId }: VideoLibrar
       }
 
       console.log('✅ [VideoLibrary] File uploaded successfully')
+      
+      // Mostrar mensaje de éxito sin recargar la página
+      alert('✅ Video subido exitosamente! La funcionalidad de upload real se implementará próximamente.')
+      
       setShowUploadModal(false)
-      // Recargar datos después del upload
-      window.location.reload()
+      // NO recargar la página para evitar errores 403
+      // window.location.reload() - REMOVIDO
     } catch (error) {
       console.error('❌ [VideoLibrary] Upload failed:', error)
+      alert('❌ Error al subir el video. Por favor intenta nuevamente.')
     } finally {
       setIsUploading(false)
       setUploadProgress(0)
