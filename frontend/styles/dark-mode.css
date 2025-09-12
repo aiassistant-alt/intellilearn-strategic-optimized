@@ -516,9 +516,11 @@
   background: #222222 !important;
 }
 
-/* EXCEPCIÓN: Contenedores de video mantienen su fondo adaptativo */
+/* EXCEPCIÓN: Contenedores de video y elementos específicos mantienen su fondo adaptativo */
 [data-theme="dark"] div[class*="bg-gray-200"],
-[data-theme="dark"] div[class*="bg-gray-900"] {
+[data-theme="dark"] div[class*="bg-gray-900"],
+[data-theme="dark"] div[class*="border-transparent"],
+[data-theme="dark"] div.absolute.inset-0 {
   background: revert !important;
 }
 
