@@ -115,6 +115,20 @@ export default function CourseDetailPage() {
     return null
   }
 
+  // Helper function to check if current lesson is voice session
+  const isVoiceSession = () => {
+    const currentLesson = getCurrentLesson()
+    const isVoice = currentLesson?.type === 'voice_session'
+    console.log('🎤 Voice session check:', {
+      userMode,
+      currentLessonId,
+      currentLesson: currentLesson?.title,
+      lessonType: currentLesson?.type,
+      isVoice
+    })
+    return userMode === 'student' && currentLessonId && isVoice
+  }
+
   // Funciones de edición de curso
   const startEditingCourse = () => {
     setIsEditing('course')
@@ -565,7 +579,11 @@ export default function CourseDetailPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className={`grid gap-4 ${
+          isVoiceSession() 
+            ? 'grid-cols-1 lg:grid-cols-5' // 5 columnas cuando hay sesión de voz
+            : 'grid-cols-1 lg:grid-cols-4'  // 4 columnas normalmente
+        }`}>
           {/* Sidebar con contenido del curso */}
           <div className="lg:col-span-1">
             <div className="neuro-container rounded-2xl p-6 sticky top-4 ml-2">
@@ -760,7 +778,11 @@ export default function CourseDetailPage() {
           </div>
 
           {/* Contenido principal */}
-          <div className="lg:col-span-3">
+          <div className={
+            isVoiceSession() 
+              ? 'lg:col-span-3' // 3 columnas cuando hay sesión de voz (deja espacio para aside)
+              : 'lg:col-span-3'  // 3 columnas normalmente (sin aside)
+          }>
             <div className="neuro-container rounded-2xl p-8 mr-4">
               {editingLesson ? (
                 <div className="space-y-6">
@@ -1103,6 +1125,26 @@ export default function CourseDetailPage() {
               )}
             </div>
           </div>
+          
+          {/* Aside neumórfico - Solo visible cuando hay sesión de voz */}
+          {isVoiceSession() && (
+            <div className="lg:col-span-1">
+              <div className="neuro-container rounded-2xl p-6 sticky top-4 ml-2 h-fit">
+                {/* Dos recuadros neumórficos uno arriba del otro */}
+                <div className="space-y-4">
+                  {/* Primer recuadro neumórfico */}
+                  <div className="neuro-inset rounded-xl p-6 min-h-[180px]">
+                    {/* Contenido vacío como solicitaste */}
+                  </div>
+                  
+                  {/* Segundo recuadro neumórfico */}
+                  <div className="neuro-inset rounded-xl p-6 min-h-[180px]">
+                    {/* Contenido vacío como solicitaste */}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

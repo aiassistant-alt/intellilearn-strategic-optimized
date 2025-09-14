@@ -1,0 +1,290 @@
+{
+  "Comment": "🎓 Intellilearn Visual Course Generator - Direct Bedrock Integration",
+  "StartAt": "PreparePrompts",
+  "States": {
+    "PreparePrompts": {
+      "Type": "Pass",
+      "Comment": "📝 Prepare course generation parameters",
+      "Parameters": {
+        "language.$": "$.language",
+        "level.$": "$.level",
+        "courseType.$": "$.courseType",
+        "duration.$": "$.duration",
+        "metadata": {
+          "courseId.$": "$$.Execution.Name",
+          "createdAt.$": "$$.State.EnteredTime",
+          "platform": "Intellilearn"
+        },
+        "currentStep": 1,
+        "totalSteps": 4,
+        "roles": [
+          "Course Planner",
+          "Curriculum Designer",
+          "Exercise Designer", 
+          "Assessment Specialist"
+        ],
+        "prompts": [
+          "Create a comprehensive course outline with CEFR-aligned objectives, modules, and assessment strategy",
+          "Develop detailed curriculum content for the first 3 modules with lesson plans, grammar, vocabulary, and cultural insights",
+          "Design practice exercises including multiple choice, conversations for voice AI, and listening activities with answer keys",
+          "Create evaluation methods with diagnostic assessments, quizzes, and voice pronunciation criteria aligned with CEFR standards"
+        ],
+        "results": {}
+      },
+      "Next": "GenerateOutline"
+    },
+
+    "GenerateOutline": {
+      "Type": "Task",
+      "Comment": "🎯 Generate Course Outline using Bedrock",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText": "You are an expert Course Planner for language education. Create a comprehensive course outline with CEFR-aligned objectives, modules, and assessment strategy. Provide a detailed, structured course outline that follows educational best practices and CEFR standards.",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.7,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Course Planner",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "ResultPath": "$.outlineResult",
+      "Next": "GenerateCurriculum",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "HandleBedrockError",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+
+    "GenerateCurriculum": {
+      "Type": "Task",
+      "Comment": "📚 Generate Curriculum Content using Bedrock",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText": "You are an expert Curriculum Designer specializing in language education. Develop detailed curriculum content for the first 3 modules with lesson plans, grammar, vocabulary, and cultural insights. Please provide comprehensive curriculum content with lesson plans, grammar explanations, vocabulary lists, and interactive activities.",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.7,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Curriculum Designer",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "ResultPath": "$.curriculumResult",
+      "Next": "GenerateExercises"
+    },
+
+    "GenerateExercises": {
+      "Type": "Task",
+      "Comment": "🏋️ Generate Practice Exercises using Bedrock",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText": "You are an expert Exercise Designer for language learning platforms. Design practice exercises including multiple choice, conversations for voice AI, and listening activities with answer keys. Please create varied exercises including multiple choice, fill-in-blank, voice practice scenarios for Nova Sonic AI, and answer keys.",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.7,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Exercise Designer",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "ResultPath": "$.exercisesResult",
+      "Next": "GenerateAssessments"
+    },
+
+    "GenerateAssessments": {
+      "Type": "Task",
+      "Comment": "📊 Generate Assessment Methods using Bedrock",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText": "You are an expert Assessment Specialist. Create evaluation methods with diagnostic assessments, quizzes, and voice pronunciation criteria aligned with CEFR standards. Please design diagnostic assessments, quizzes, voice pronunciation criteria for Nova Sonic AI, and CEFR-aligned evaluation rubrics.",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.7,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Assessment Specialist",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "ResultPath": "$.assessmentsResult",
+      "Next": "GenerateEmbedding"
+    },
+
+    "GenerateEmbedding": {
+      "Type": "Task",
+      "Comment": "🧠 Generate Course Embedding using Titan",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-embed-text-v1",
+        "Body": {
+          "inputText": "Complete language course with outline, curriculum, exercises, and assessments for educational platform."
+        }
+      },
+      "ResultSelector": {
+        "embedding.$": "$.Body.embedding",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "ResultPath": "$.embeddingResult",
+      "Next": "StoreCourseContent"
+    },
+
+    "StoreCourseContent": {
+      "Type": "Task",
+      "Comment": "💾 Store Complete Course to S3",
+      "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
+      "Parameters": {
+        "Bucket": "intellilearn-courses-dev",
+        "Key.$": "States.Format('courses/{}/{}/course-{}-{}-{}.json', $.language, $.level, $.language, $.level, States.ArrayGetItem(States.StringSplit($.metadata.createdAt, 'T'), 0))",
+        "Body.$": "States.JsonToString($)",
+        "ContentType": "application/json",
+        "Metadata": {
+          "Language.$": "$.language",
+          "Level.$": "$.level",
+          "CourseType.$": "$.courseType",
+          "Duration.$": "States.JsonToString($.duration)",
+          "CourseId.$": "$.metadata.courseId",
+          "Platform": "Intellilearn",
+          "GeneratedAt.$": "$.metadata.createdAt"
+        }
+      },
+      "ResultPath": "$.s3Result",
+      "Next": "StoreEmbedding"
+    },
+
+    "StoreEmbedding": {
+      "Type": "Task",
+      "Comment": "🔍 Store Course Embedding to S3",
+      "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
+      "Parameters": {
+        "Bucket": "intellilearn-vectors-076276934311",
+        "Key.$": "States.Format('embeddings/{}/{}/embedding-{}-{}-{}.json', $.language, $.level, $.language, $.level, States.ArrayGetItem(States.StringSplit($.metadata.createdAt, 'T'), 0))",
+        "Body.$": "States.JsonToString($.embeddingResult)",
+        "ContentType": "application/json",
+        "Metadata": {
+          "CourseId.$": "$.metadata.courseId",
+          "Language.$": "$.language",
+          "Level.$": "$.level",
+          "EmbeddingModel": "amazon.titan-embed-text-v1",
+          "GeneratedAt.$": "$.metadata.createdAt"
+        }
+      },
+      "ResultPath": "$.embeddingS3Result",
+      "Next": "NotifyCompletion"
+    },
+
+    "NotifyCompletion": {
+      "Type": "Task",
+      "Comment": "📧 Send Completion Notification",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "intellilearn-course-completion-handler",
+        "Payload": {
+          "action": "notify_completion",
+          "courseId.$": "$.metadata.courseId",
+          "language.$": "$.language",
+          "level.$": "$.level",
+          "courseType.$": "$.courseType",
+          "duration.$": "$.duration",
+          "s3Location.$": "$.s3Result.Key",
+          "embeddingLocation.$": "$.embeddingS3Result.Key",
+          "generatedAt.$": "$.metadata.createdAt",
+          "status": "completed",
+          "outline.$": "$.outlineResult",
+          "curriculum.$": "$.curriculumResult",
+          "exercises.$": "$.exercisesResult",
+          "assessments.$": "$.assessmentsResult"
+        }
+      },
+      "ResultPath": "$.notificationResult",
+      "Next": "Success"
+    },
+
+    "Success": {
+      "Type": "Pass",
+      "Comment": "✅ Course Generation Completed Successfully",
+      "Parameters": {
+        "status": "SUCCESS",
+        "message": "Course generated successfully with direct Bedrock integration",
+        "courseId.$": "$.metadata.courseId",
+        "language.$": "$.language",
+        "level.$": "$.level",
+        "courseType.$": "$.courseType",
+        "duration.$": "$.duration",
+        "s3Location.$": "$.s3Result.Key",
+        "embeddingLocation.$": "$.embeddingS3Result.Key",
+        "generatedAt.$": "$.metadata.createdAt",
+        "components": {
+          "outline": "Generated by Course Planner",
+          "curriculum": "Generated by Curriculum Designer",
+          "exercises": "Generated by Exercise Designer",
+          "assessments": "Generated by Assessment Specialist"
+        },
+        "models": {
+          "textGeneration": "amazon.titan-text-express-v1",
+          "embedding": "amazon.titan-embed-text-v1"
+        }
+      },
+      "End": true
+    },
+
+    "HandleBedrockError": {
+      "Type": "Pass",
+      "Comment": "❌ Handle Bedrock Access Errors",
+      "Parameters": {
+        "status": "FAILED",
+        "error": "Bedrock model access required",
+        "details.$": "$.error",
+        "language.$": "$.language",
+        "level.$": "$.level",
+        "message": "Please enable Amazon Titan models in Bedrock console",
+        "helpUrl": "https://console.aws.amazon.com/bedrock/home#/modelaccess",
+        "requiredModels": [
+          "amazon.titan-text-express-v1",
+          "amazon.titan-embed-text-v1"
+        ]
+      },
+      "Next": "Failure"
+    },
+
+    "Failure": {
+      "Type": "Fail",
+      "Comment": "💥 Course Generation Failed",
+      "Cause": "Course generation process encountered an error. Check Bedrock model access."
+    }
+  }
+}

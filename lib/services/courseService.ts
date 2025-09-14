@@ -238,6 +238,20 @@ const INITIAL_PROJECT_MANAGEMENT_COURSE: Course = {
           resources: [],
           createdAt: '2024-01-15T12:00:00Z',
           updatedAt: '2024-01-15T12:00:00Z'
+        },
+        {
+          id: 'lesson_1_4',
+          moduleId: 'module_1',
+          courseId: '1',
+          title: 'Sesión Nova Sonic - module_1',
+          description: 'Conversación interactiva con IA sobre Project Management',
+          type: 'voice_session',
+          content: 'Sesión de conversación con Nova Sonic para profundizar en los conceptos de gestión de proyectos mediante diálogo interactivo.',
+          duration: '20 min',
+          order: 4,
+          resources: [],
+          createdAt: '2024-01-15T12:35:00Z',
+          updatedAt: '2024-01-15T12:35:00Z'
         }
       ],
       createdAt: '2024-01-15T09:00:00Z',

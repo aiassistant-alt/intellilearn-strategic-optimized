@@ -1,0 +1,589 @@
+{
+  "Comment": "🎓 Intellilearn Enhanced Course Generator with S3 Vectors RAG",
+  "StartAt": "InitializeGeneration",
+  "States": {
+    "InitializeGeneration": {
+      "Type": "Pass",
+      "Comment": "📝 Initialize course generation with metadata",
+      "Parameters": {
+        "language.$": "$.language",
+        "level.$": "$.level",
+        "courseType.$": "$.courseType",
+        "duration.$": "$.duration",
+        "metadata": {
+          "courseId.$": "$$.Execution.Name",
+          "createdAt.$": "$$.State.EnteredTime",
+          "platform": "Intellilearn",
+          "version": "2.0.0"
+        },
+        "vectorBucket": "intellilearn-course-vectors",
+        "vectorIndex": "courses-semantic-index",
+        "ragConfig": {
+          "enabled": true,
+          "similarityThreshold": 0.75,
+          "topK": 5,
+          "reuseThreshold": 0.85
+        }
+      },
+      "Next": "SearchExistingContent"
+    },
+
+    "SearchExistingContent": {
+      "Type": "Parallel",
+      "Comment": "🔍 RAG: Search for similar existing content",
+      "Branches": [
+        {
+          "StartAt": "SearchSimilarOutlines",
+          "States": {
+            "SearchSimilarOutlines": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "intellilearn-vector-search",
+                "Payload": {
+                  "action": "semantic_search",
+                  "query.$": "States.Format('comprehensive course outline for {} {} {}', $.language, $.level, $.courseType)",
+                  "filters": {
+                    "artifact_type": "course_outline",
+                    "cefr_level.$": "$.level",
+                    "language.$": "$.language"
+                  },
+                  "topK": 3,
+                  "similarityThreshold": 0.75
+                }
+              },
+              "ResultPath": "$.ragResults.outlines",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "SearchSimilarLessons",
+          "States": {
+            "SearchSimilarLessons": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "intellilearn-vector-search",
+                "Payload": {
+                  "action": "semantic_search",
+                  "query.$": "States.Format('lesson plans for {} level {} learners', $.language, $.level)",
+                  "filters": {
+                    "artifact_type": "lesson_plan",
+                    "cefr_level.$": "$.level"
+                  },
+                  "topK": 5,
+                  "similarityThreshold": 0.70
+                }
+              },
+              "ResultPath": "$.ragResults.lessons",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "SearchSimilarExercises",
+          "States": {
+            "SearchSimilarExercises": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "intellilearn-vector-search",
+                "Payload": {
+                  "action": "semantic_search",
+                  "query.$": "States.Format('practice exercises for {} {} with voice AI', $.language, $.level)",
+                  "filters": {
+                    "artifact_type": "exercise",
+                    "cefr_level.$": "$.level"
+                  },
+                  "topK": 10,
+                  "similarityThreshold": 0.65
+                }
+              },
+              "ResultPath": "$.ragResults.exercises",
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.ragSearchResults",
+      "Next": "GenerateOutlineWithRAG"
+    },
+
+    "GenerateOutlineWithRAG": {
+      "Type": "Task",
+      "Comment": "🎯 Generate outline with RAG context",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText.$": "States.Format('You are an expert Course Planner. Create a comprehensive {} course outline for {} level {} learners.\n\nHere are similar successful outlines for reference:\n{}\n\nProvide a detailed, structured course outline with CEFR-aligned objectives, modules, and assessment strategy. Make it unique while maintaining proven pedagogical patterns.', $.courseType, $.level, $.language, $.ragSearchResults[0].Payload)",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.7,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Course Planner",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "ResultPath": "$.outlineResult",
+      "Next": "ParallelEmbeddingGeneration"
+    },
+
+    "ParallelEmbeddingGeneration": {
+      "Type": "Parallel",
+      "Comment": "🧠 Generate and store embeddings for outline",
+      "Branches": [
+        {
+          "StartAt": "GenerateOutlineEmbedding",
+          "States": {
+            "GenerateOutlineEmbedding": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::bedrock:invokeModel",
+              "Parameters": {
+                "ModelId": "amazon.titan-embed-text-v1",
+                "Body": {
+                  "inputText.$": "$.outlineResult.content"
+                }
+              },
+              "ResultSelector": {
+                "embedding.$": "$.Body.embedding"
+              },
+              "ResultPath": "$.outlineEmbedding",
+              "Next": "StoreOutlineVector"
+            },
+            "StoreOutlineVector": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "intellilearn-store-vector",
+                "Payload": {
+                  "action": "put_vector",
+                  "vectorBucket": "intellilearn-course-vectors",
+                  "vectorIndex": "courses-semantic-index",
+                  "key.$": "States.Format('{}-outline', $.metadata.courseId)",
+                  "embedding.$": "$.outlineEmbedding.embedding",
+                  "metadata": {
+                    "language.$": "$.language",
+                    "cefr_level.$": "$.level",
+                    "artifact_type": "course_outline",
+                    "course_id.$": "$.metadata.courseId",
+                    "course_type.$": "$.courseType",
+                    "created_at.$": "$.metadata.createdAt",
+                    "quality_score": 0.0,
+                    "topic_cluster": "general_overview"
+                  }
+                }
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "CheckDuplicateOutline",
+          "States": {
+            "CheckDuplicateOutline": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "intellilearn-vector-search",
+                "Payload": {
+                  "action": "check_duplicate",
+                  "content.$": "$.outlineResult.content",
+                  "artifactType": "course_outline",
+                  "similarityThreshold": 0.95
+                }
+              },
+              "ResultPath": "$.duplicateCheck.outline",
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.outlineProcessing",
+      "Next": "GenerateCurriculumWithRAG"
+    },
+
+    "GenerateCurriculumWithRAG": {
+      "Type": "Task",
+      "Comment": "📚 Generate curriculum with RAG context",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText.$": "States.Format('You are an expert Curriculum Designer. Based on this outline:\n{}\n\nAnd these successful lesson examples:\n{}\n\nDevelop detailed curriculum content for the first 3 modules with lesson plans, grammar, vocabulary, and cultural insights for {} {} learners.', $.outlineResult.content, $.ragSearchResults[1].Payload, $.language, $.level)",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.7,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Curriculum Designer",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "ResultPath": "$.curriculumResult",
+      "Next": "ProcessCurriculumLessons"
+    },
+
+    "ProcessCurriculumLessons": {
+      "Type": "Map",
+      "Comment": "📖 Process each lesson for embeddings",
+      "ItemsPath": "$.curriculumResult.lessons",
+      "MaxConcurrency": 5,
+      "Parameters": {
+        "lesson.$": "$$.Map.Item.Value",
+        "courseId.$": "$.metadata.courseId",
+        "language.$": "$.language",
+        "level.$": "$.level"
+      },
+      "Iterator": {
+        "StartAt": "GenerateLessonEmbedding",
+        "States": {
+          "GenerateLessonEmbedding": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::bedrock:invokeModel",
+            "Parameters": {
+              "ModelId": "amazon.titan-embed-text-v1",
+              "Body": {
+                "inputText.$": "$.lesson.content"
+              }
+            },
+            "ResultPath": "$.lessonEmbedding",
+            "Next": "StoreLessonVector"
+          },
+          "StoreLessonVector": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "intellilearn-store-vector",
+              "Payload": {
+                "action": "put_vector",
+                "vectorBucket": "intellilearn-course-vectors",
+                "vectorIndex": "courses-semantic-index",
+                "key.$": "States.Format('{}-{}-{}', $.courseId, $.lesson.moduleId, $.lesson.lessonId)",
+                "embedding.$": "$.lessonEmbedding.Body.embedding",
+                "metadata": {
+                  "language.$": "$.language",
+                  "cefr_level.$": "$.level",
+                  "artifact_type": "lesson_plan",
+                  "course_id.$": "$.courseId",
+                  "module_id.$": "$.lesson.moduleId",
+                  "lesson_id.$": "$.lesson.lessonId",
+                  "duration_minutes": 45,
+                  "grammar_focus.$": "$.lesson.grammarPoints",
+                  "vocabulary_domains.$": "$.lesson.vocabularyTopics",
+                  "skill_focus.$": "$.lesson.skills"
+                }
+              }
+            },
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.lessonProcessing",
+      "Next": "GenerateExercisesWithRAG"
+    },
+
+    "GenerateExercisesWithRAG": {
+      "Type": "Task",
+      "Comment": "🏋️ Generate exercises with RAG reuse",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText.$": "States.Format('You are an expert Exercise Designer. Based on the curriculum:\n{}\n\nAnd these proven exercise examples:\n{}\n\nDesign practice exercises including multiple choice, conversations for Nova Sonic voice AI, and listening activities with answer keys for {} {} learners.', $.curriculumResult.content, $.ragSearchResults[2].Payload, $.language, $.level)",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.8,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Exercise Designer",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "ResultPath": "$.exercisesResult",
+      "Next": "ProcessExerciseSets"
+    },
+
+    "ProcessExerciseSets": {
+      "Type": "Map",
+      "Comment": "💪 Process each exercise set",
+      "ItemsPath": "$.exercisesResult.exerciseSets",
+      "MaxConcurrency": 5,
+      "Parameters": {
+        "exercise.$": "$$.Map.Item.Value",
+        "courseId.$": "$.metadata.courseId",
+        "language.$": "$.language",
+        "level.$": "$.level"
+      },
+      "Iterator": {
+        "StartAt": "GenerateExerciseEmbedding",
+        "States": {
+          "GenerateExerciseEmbedding": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::bedrock:invokeModel",
+            "Parameters": {
+              "ModelId": "amazon.titan-embed-text-v1",
+              "Body": {
+                "inputText.$": "$.exercise.content"
+              }
+            },
+            "ResultPath": "$.exerciseEmbedding",
+            "Next": "StoreExerciseVector"
+          },
+          "StoreExerciseVector": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "intellilearn-store-vector",
+              "Payload": {
+                "action": "put_vector",
+                "vectorBucket": "intellilearn-course-vectors",
+                "vectorIndex": "courses-semantic-index",
+                "key.$": "States.Format('{}-exercise-{}-{}', $.courseId, $.exercise.moduleId, $.exercise.exerciseType)",
+                "embedding.$": "$.exerciseEmbedding.Body.embedding",
+                "metadata": {
+                  "language.$": "$.language",
+                  "cefr_level.$": "$.level",
+                  "artifact_type": "exercise",
+                  "exercise_type.$": "$.exercise.exerciseType",
+                  "course_id.$": "$.courseId",
+                  "module_id.$": "$.exercise.moduleId",
+                  "difficulty_score.$": "$.exercise.difficulty",
+                  "estimated_time.$": "$.exercise.estimatedMinutes",
+                  "reusability_score": 0.90,
+                  "voice_ai_compatible.$": "$.exercise.voiceAiCompatible"
+                }
+              }
+            },
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.exerciseProcessing",
+      "Next": "GenerateAssessments"
+    },
+
+    "GenerateAssessments": {
+      "Type": "Task",
+      "Comment": "📊 Generate assessments",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText.$": "States.Format('You are an Assessment Specialist. Create evaluation methods with diagnostic assessments, quizzes, and voice pronunciation criteria aligned with CEFR {} standards for {} learners.\n\nCourse content:\n{}\n\nExercises:\n{}', $.level, $.language, $.curriculumResult.content, $.exercisesResult.content)",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.6,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Assessment Specialist",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "ResultPath": "$.assessmentsResult",
+      "Next": "StoreAssessmentVector"
+    },
+
+    "StoreAssessmentVector": {
+      "Type": "Parallel",
+      "Comment": "📝 Store assessment embeddings",
+      "Branches": [
+        {
+          "StartAt": "GenerateAssessmentEmbedding",
+          "States": {
+            "GenerateAssessmentEmbedding": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::bedrock:invokeModel",
+              "Parameters": {
+                "ModelId": "amazon.titan-embed-text-v1",
+                "Body": {
+                  "inputText.$": "$.assessmentsResult.content"
+                }
+              },
+              "ResultPath": "$.assessmentEmbedding",
+              "Next": "StoreAssessmentVectorData"
+            },
+            "StoreAssessmentVectorData": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "intellilearn-store-vector",
+                "Payload": {
+                  "action": "put_vector",
+                  "vectorBucket": "intellilearn-course-vectors",
+                  "vectorIndex": "courses-semantic-index",
+                  "key.$": "States.Format('{}-assessment', $.metadata.courseId)",
+                  "embedding.$": "$.assessmentEmbedding.Body.embedding",
+                  "metadata": {
+                    "language.$": "$.language",
+                    "cefr_level.$": "$.level",
+                    "artifact_type": "assessment",
+                    "course_id.$": "$.metadata.courseId",
+                    "assessment_types": "[\"diagnostic\", \"formative\", \"summative\"]",
+                    "voice_assessment": true,
+                    "rubric_included": true
+                  }
+                }
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.assessmentProcessing",
+      "Next": "QualityCheck"
+    },
+
+    "QualityCheck": {
+      "Type": "Parallel",
+      "Comment": "✅ Quality control and CEFR alignment",
+      "Branches": [
+        {
+          "StartAt": "CheckCEFRAlignment",
+          "States": {
+            "CheckCEFRAlignment": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "intellilearn-quality-check",
+                "Payload": {
+                  "action": "verify_cefr_alignment",
+                  "content": {
+                    "outline.$": "$.outlineResult.content",
+                    "curriculum.$": "$.curriculumResult.content",
+                    "exercises.$": "$.exercisesResult.content"
+                  },
+                  "targetLevel.$": "$.level",
+                  "language.$": "$.language"
+                }
+              },
+              "ResultPath": "$.qualityCheck.cefr",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "CheckContentUniqueness",
+          "States": {
+            "CheckContentUniqueness": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "intellilearn-quality-check",
+                "Payload": {
+                  "action": "check_uniqueness",
+                  "courseId.$": "$.metadata.courseId",
+                  "duplicateThreshold": 0.95
+                }
+              },
+              "ResultPath": "$.qualityCheck.uniqueness",
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.qualityResults",
+      "Next": "StoreFinalCourse"
+    },
+
+    "StoreFinalCourse": {
+      "Type": "Parallel",
+      "Comment": "💾 Store complete course and metadata",
+      "Branches": [
+        {
+          "StartAt": "StoreCourseJSON",
+          "States": {
+            "StoreCourseJSON": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
+              "Parameters": {
+                "Bucket": "intellilearn-courses-dev",
+                "Key.$": "States.Format('courses/{}/{}/course-{}-{}-{}.json', $.language, $.level, $.language, $.level, States.ArrayGetItem(States.StringSplit($.metadata.createdAt, 'T'), 0))",
+                "Body.$": "States.JsonToString($)",
+                "ContentType": "application/json",
+                "Metadata": {
+                  "Language.$": "$.language",
+                  "Level.$": "$.level",
+                  "CourseType.$": "$.courseType",
+                  "CourseId.$": "$.metadata.courseId",
+                  "QualityScore.$": "States.JsonToString($.qualityResults[0].Payload.score)",
+                  "UniquenessScore.$": "States.JsonToString($.qualityResults[1].Payload.score)"
+                }
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "UpdateCourseMetadata",
+          "States": {
+            "UpdateCourseMetadata": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::dynamodb:putItem",
+              "Parameters": {
+                "TableName": "intellilearn-course-catalog",
+                "Item": {
+                  "courseId": {"S.$": "$.metadata.courseId"},
+                  "language": {"S.$": "$.language"},
+                  "level": {"S.$": "$.level"},
+                  "courseType": {"S.$": "$.courseType"},
+                  "createdAt": {"S.$": "$.metadata.createdAt"},
+                  "s3Location": {"S.$": "States.Format('courses/{}/{}/course-{}-{}-{}.json', $.language, $.level, $.language, $.level, States.ArrayGetItem(States.StringSplit($.metadata.createdAt, 'T'), 0))"},
+                  "vectorsStored": {"BOOL": true},
+                  "qualityScore": {"N.$": "States.JsonToString($.qualityResults[0].Payload.score)"},
+                  "uniquenessScore": {"N.$": "States.JsonToString($.qualityResults[1].Payload.score)"},
+                  "ragItemsReused": {"N.$": "States.JsonToString($.ragSearchResults[0].Payload.itemsReused)"}
+                }
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "Next": "NotifyCompletion"
+    },
+
+    "NotifyCompletion": {
+      "Type": "Task",
+      "Comment": "📧 Send completion notification",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:us-east-1:076276934311:intellilearn-course-notifications",
+        "Message.$": "States.Format('Course generation completed!\n\nCourse ID: {}\nLanguage: {}\nLevel: {}\nType: {}\n\nQuality Score: {}\nUniqueness Score: {}\nRAG Items Reused: {}\n\nVectors stored in S3 Vector Bucket for semantic search.', $.metadata.courseId, $.language, $.level, $.courseType, $.qualityResults[0].Payload.score, $.qualityResults[1].Payload.score, $.ragSearchResults[0].Payload.itemsReused)",
+        "Subject": "✅ Course Generation Complete with Vectors"
+      },
+      "Next": "Success"
+    },
+
+    "Success": {
+      "Type": "Pass",
+      "Comment": "✅ Course generation completed with full vector indexing",
+      "Parameters": {
+        "status": "SUCCESS",
+        "message": "Course generated and indexed successfully",
+        "courseId.$": "$.metadata.courseId",
+        "statistics": {
+          "totalVectorsStored.$": "States.ArrayLength($.lessonProcessing)",
+          "qualityScore.$": "$.qualityResults[0].Payload.score",
+          "uniquenessScore.$": "$.qualityResults[1].Payload.score",
+          "ragItemsReused.$": "$.ragSearchResults[0].Payload.itemsReused"
+        }
+      },
+      "End": true
+    }
+  }
+}

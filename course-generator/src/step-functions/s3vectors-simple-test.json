@@ -1,0 +1,102 @@
+{
+  "Comment": "🧪 S3 Vectors Test Simple - Solo Bedrock con contexto simulado",
+  "StartAt": "PreparePrompts",
+  "States": {
+    "PreparePrompts": {
+      "Type": "Pass",
+      "Comment": "📝 Preparar parámetros con contexto S3 Vectors simulado",
+      "Parameters": {
+        "language.$": "$.language",
+        "level.$": "$.level",
+        "courseType.$": "$.courseType",
+        "metadata": {
+          "courseId.$": "$$.Execution.Name",
+          "createdAt.$": "$$.State.EnteredTime",
+          "platform": "Intellilearn"
+        },
+        "ragContext": {
+          "similarCourses": [
+            {
+              "key": "lesson-001-greetings",
+              "distance": 0.32,
+              "metadata": {
+                "artifact_type": "lesson_plan",
+                "language": "English",
+                "cefr_level": "A2",
+                "skill_focus": "speaking,vocabulary",
+                "quality_score": "0.95",
+                "content": "English A2 lesson about greetings and introductions"
+              }
+            },
+            {
+              "key": "lesson-002-family", 
+              "distance": 0.68,
+              "metadata": {
+                "artifact_type": "lesson_plan",
+                "language": "English",
+                "cefr_level": "A2",
+                "skill_focus": "vocabulary,speaking",
+                "quality_score": "0.92",
+                "content": "English A2 lesson about family members"
+              }
+            }
+          ],
+          "searchSuccess": true,
+          "searchTimestamp.$": "$$.State.EnteredTime"
+        }
+      },
+      "Next": "GenerateOutlineWithRAG"
+    },
+
+    "GenerateOutlineWithRAG": {
+      "Type": "Task",
+      "Comment": "🎯 Generar outline con contexto RAG simulado",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText.$": "States.Format('You are an expert Course Planner for language education. Create a comprehensive course outline with CEFR-aligned objectives for {} level {} course. IMPORTANT: Use the following similar courses as reference and inspiration: {}. Build upon these examples to create original content. Provide a detailed, structured course outline that follows educational best practices and CEFR standards.', $.language, $.level, States.JsonToString($.ragContext.similarCourses))",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.7,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Course Planner",
+        "timestamp.$": "$$.State.EnteredTime",
+        "ragEnhanced": true
+      },
+      "ResultPath": "$.outlineResult",
+      "Next": "TestSuccess"
+    },
+
+    "TestSuccess": {
+      "Type": "Pass",
+      "Comment": "✅ Test completado - RAG simulado funcionando",
+      "Parameters": {
+        "status": "SUCCESS",
+        "message": "S3 Vectors pattern test completed - RAG context working",
+        "testResults": {
+          "courseId.$": "$.metadata.courseId",
+          "language.$": "$.language",
+          "level.$": "$.level",
+          "generatedAt.$": "$.metadata.createdAt",
+          "ragContextUsed": true,
+          "similarCoursesFound": 2,
+          "outlineGenerated": true
+        },
+        "ragContext.$": "$.ragContext",
+        "outline.$": "$.outlineResult",
+        "nextSteps": [
+          "Deploy Lambda function for real S3 Vectors integration",
+          "Replace simulated context with actual S3 Vectors search",
+          "Test with real vector embeddings"
+        ]
+      },
+      "End": true
+    }
+  }
+}

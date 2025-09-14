@@ -12,8 +12,10 @@
 
 import React, { useState } from 'react'
 import { FiDatabase, FiFolder, FiFileText, FiImage, FiVideo, FiMusic, FiUpload, FiSearch, FiFilter, FiGrid, FiList, FiX, FiCheck, FiLoader } from 'react-icons/fi'
+import { useTranslation } from '@/lib/translations'
 
 export default function LibraryClient() {
+  const { t } = useTranslation()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedCategory, setSelectedCategory] = useState('documents')
   const [showUploadModal, setShowUploadModal] = useState(false)
@@ -23,7 +25,7 @@ export default function LibraryClient() {
   const [isDragOver, setIsDragOver] = useState(false)
 
   const categories = [
-    { id: 'documents', label: 'Documentos', icon: <FiFileText />, count: 89 },
+    { id: 'documents', label: t('library.documents'), icon: <FiFileText />, count: 89 },
     { id: 'images', label: 'Imágenes', icon: <FiImage />, count: 134 },
     { id: 'videos', label: 'Videos', icon: <FiVideo />, count: 18 },
   ]
@@ -31,7 +33,7 @@ export default function LibraryClient() {
   const libraryItems = [
     {
       id: '1',
-      name: 'Curso de Python Básico.pdf',
+      name: `${t('library.courseOf')} ${t('library.programmingBasics')}.pdf`,
       type: 'document',
       size: '2.4 MB',
       modified: '2025-09-10',
@@ -160,8 +162,8 @@ export default function LibraryClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Library</h1>
-          <p className="text-gray-600">Gestiona todos los recursos educativos y materiales de aprendizaje</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('library.title')}</h1>
+          <p className="text-gray-600">{t('library.manageResources')}</p>
         </div>
         
         {/* Upload Button */}
@@ -170,7 +172,7 @@ export default function LibraryClient() {
           className="nm-white-button-primary px-6 py-3 rounded-xl flex items-center space-x-2 hover:scale-105 transition-transform duration-200"
         >
           <FiUpload />
-          <span>Subir Archivo</span>
+          <span>{t('action.upload')} Archivo</span>
         </button>
       </div>
 
@@ -206,7 +208,7 @@ export default function LibraryClient() {
               <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar archivos..."
+                placeholder={t('library.searchFiles')}
                 className="nm-input pl-10 w-full"
               />
             </div>

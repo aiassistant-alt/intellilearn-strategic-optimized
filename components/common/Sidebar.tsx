@@ -43,10 +43,14 @@ import {
   FiToggleRight,
   FiChevronDown,
   FiVideo,
-  FiDatabase
+  FiDatabase,
+  FiSidebar
 } from 'react-icons/fi';
+import { FaRobot } from 'react-icons/fa';
 import { useAuth } from '@/lib/AuthContext'
 import { useUserMode } from '@/lib/contexts/UserModeContext';
+import { useTranslation } from '@/lib/translations';
+import { NeumorphicLanguageSelector } from './NeumorphicLanguageSelector';
 
 // Import del contexto de sidebar
 interface SidebarContextType {
@@ -96,7 +100,8 @@ export const Sidebar = () => {
   const pathname = usePathname()
   const { user, signOut } = useAuth()
   const { userMode, toggleUserMode } = useUserMode()
-  const { isCollapsed } = useSidebarContext()
+  const { isCollapsed, toggleSidebar } = useSidebarContext()
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
 
@@ -109,10 +114,10 @@ export const Sidebar = () => {
   }
 
   /**
-   * Toggle sidebar visibility on mobile
+   * Toggle mobile sidebar visibility
    * @context Mobile responsiveness
    */
-  const toggleSidebar = () => {
+  const toggleMobileSidebar = () => {
     setIsOpen(!isOpen)
   }
 
@@ -137,13 +142,14 @@ export const Sidebar = () => {
    * @context Primary application sections
    */
   const mainNavItems = [
-    { path: '/dashboard', label: 'My Progress', icon: <FiTrendingUp /> },
-    { path: '/dashboard/courses', label: 'My Courses', icon: <FiBookOpen /> },
-    { path: '/dashboard/assignments', label: 'My Tasks', icon: <FiFileText /> },
+    { path: '/dashboard', label: t('nav.myProgress'), icon: <FiTrendingUp /> },
+    { path: '/dashboard/courses', label: t('nav.myCourses'), icon: <FiBookOpen /> },
+    { path: '/dashboard/assignments', label: t('nav.myTasks'), icon: <FiFileText /> },
     ...(userMode === 'admin' ? [
-      { path: '/dashboard/video-library', label: 'Video Library', icon: <FiVideo /> },
-      { path: '/dashboard/library', label: 'Library', icon: <FiDatabase /> }
+      { path: '/dashboard/video-library', label: t('nav.videoLibrary'), icon: <FiVideo /> },
+      { path: '/dashboard/library', label: t('nav.library'), icon: <FiDatabase /> }
     ] : []),
+    { path: '/dashboard/ai-course-generator', label: 'AI Course Generator', icon: <FaRobot /> },
   ]
 
   /**
@@ -151,8 +157,8 @@ export const Sidebar = () => {
    * @context Additional tools and user settings
    */
   const secondaryNavItems = [
-    { path: '/dashboard/certificates', label: 'Certificates', icon: <FiAward /> },
-    { path: '/dashboard/profile', label: 'Profile', icon: <FiUser /> },
+    { path: '/dashboard/certificates', label: t('nav.certificates'), icon: <FiAward /> },
+    { path: '/dashboard/profile', label: t('nav.profile'), icon: <FiUser /> },
   ]
 
   return (
@@ -160,7 +166,7 @@ export const Sidebar = () => {
       {/* Mobile sidebar toggle button with neumorphism */}
       <button
         className="fixed top-4 left-4 neuro-button p-3 rounded-full shadow-md md:hidden z-30"
-        onClick={toggleSidebar}
+        onClick={toggleMobileSidebar}
         aria-label="Toggle sidebar"
       >
         {isOpen ? <FiX /> : <FiMenu />}
@@ -174,31 +180,65 @@ export const Sidebar = () => {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0 flex flex-col neuro-sidebar overflow-hidden`}
       >
-        {/* Logo section with neumorphic container */}
-        <div className="py-6 px-4 flex justify-center">
-          <div className="neuro-container p-4 rounded-lg">
-            <StaticLink href="/dashboard" className="block">
-              {isCollapsed ? (
+        {/* Header section with logo and toggle button */}
+        <div className="py-6 px-4 relative">
+          {/* Toggle button - Dynamic positioning based on sidebar state */}
+          <button
+            onClick={toggleSidebar}
+            className={`absolute neuro-button p-2 rounded-lg transition-all duration-300 hover:scale-105 z-10 ${
+              isCollapsed 
+                ? 'top-4 left-1/2 transform -translate-x-1/2' // Encima del logo cuando cerrada
+                : 'top-2 right-2' // Esquina superior derecha cuando abierta
+            }`}
+            title={t('nav.toggleSidebar')}
+            aria-label={t('nav.toggleSidebar')}
+            style={!isCollapsed ? { 
+              marginTop: '1px',
+              marginRight: '1px'
+            } : {}}
+          >
+            {isCollapsed ? (
+              <FiMenu className="text-gray-600 transition-all duration-300" />
+            ) : (
+              <FiX className="text-gray-600 transition-all duration-300" />
+            )}
+          </button>
+          
+          {/* Logo container - Only visible when sidebar is expanded */}
+          <div className="flex justify-center" style={{ marginTop: '1px' }}>
+            {!isCollapsed && (
+              <div className="neuro-container p-4 rounded-lg">
+                <StaticLink href="/dashboard" className="block">
+                  <img
+                    src="/assets/images/Logo.svg"
+                    alt="CognIA Logo"
+                    width={160}
+                    height={40}
+                    className="object-contain"
+                    style={{ 
+                      maxWidth: '100%', 
+                      height: 'auto',
+                      filter: 'brightness(0) invert(1)' // Makes the logo white
+                    }}
+                    onLoad={() => console.log('✅ Sidebar logo loaded successfully')}
+                    onError={(e) => {
+                      console.error('❌ Sidebar logo failed to load:', e);
+                      console.error('Sidebar logo src:', e.currentTarget.src);
+                    }}
+                  />
+                </StaticLink>
+              </div>
+            )}
+            
+            {/* Collapsed logo - Just the "C" letter without container */}
+            {isCollapsed && (
+              <StaticLink href="/dashboard" className="block">
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center text-white font-bold text-sm"
                      style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-quaternary))' }}>
                   C
                 </div>
-              ) : (
-                <img
-                  src="/assets/images/Logo.svg"
-                  alt="CognIA Logo"
-                  width={160}
-                  height={40}
-                  className="object-contain"
-                  style={{ maxWidth: '100%', height: 'auto' }}
-                  onLoad={() => console.log('✅ Sidebar logo loaded successfully')}
-                  onError={(e) => {
-                    console.error('❌ Sidebar logo failed to load:', e);
-                    console.error('Sidebar logo src:', e.currentTarget.src);
-                  }}
-                />
-              )}
-            </StaticLink>
+              </StaticLink>
+            )}
           </div>
         </div>
 
@@ -256,7 +296,7 @@ export const Sidebar = () => {
           {!isCollapsed && (
             <div className="mb-4">
               <p className="px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tools
+                {t('nav.tools')}
               </p>
             </div>
           )}
@@ -294,6 +334,12 @@ export const Sidebar = () => {
 
         {/* Profile dropdown and sign out */}
         <div className="p-4 mt-auto space-y-3">
+          {/* Language selector */}
+          <NeumorphicLanguageSelector 
+            isCollapsed={isCollapsed}
+            className="mb-3"
+          />
+          
           {/* Profile Dropdown */}
           <div className="relative">
             <button
@@ -308,18 +354,18 @@ export const Sidebar = () => {
                   <FiUser className="text-gray-600" />
                 </div>
                 {!isCollapsed && (
-                  <div className="text-left ml-3">
-                    <div className="font-semibold text-xs text-gray-800">
-                      {user?.email || 'Demo User'}
-                    </div>
-                    <div className={`text-xs font-medium ${
-                      userMode === 'admin' 
-                        ? 'text-orange-600' 
-                        : 'text-blue-600'
-                    }`}>
-                      {userMode === 'admin' ? 'Administrator' : 'Student'}
-                    </div>
+                <div className="text-left ml-3">
+                  <div className="font-semibold text-xs text-gray-800">
+                    {user?.email || t('user.demoUser')}
                   </div>
+                  <div className={`text-xs font-medium ${
+                    userMode === 'admin' 
+                      ? 'text-orange-600' 
+                      : 'text-blue-600'
+                  }`}>
+                    {userMode === 'admin' ? t('nav.administrator') : t('nav.student')}
+                  </div>
+                </div>
                 )}
               </div>
               {!isCollapsed && (
@@ -346,7 +392,7 @@ export const Sidebar = () => {
                     ) : (
                       <FiToggleLeft className="text-blue-500" />
                     )}
-                                         <span>Switch to {userMode === 'admin' ? 'Student' : 'Admin'}</span>
+                                         <span>{userMode === 'admin' ? t('nav.switchToStudent') : t('nav.switchToAdmin')}</span>
                   </button>
 
                   {/* Profile Settings */}
@@ -355,7 +401,7 @@ export const Sidebar = () => {
                     className="flex items-center gap-3 w-full px-3 py-2 text-sm hover:opacity-80 rounded-lg transition-all"
                   >
                     <FiSettings className="text-gray-500" />
-                                         <span>Settings</span>
+                                        <span>{t('nav.settings')}</span>
                   </button>
 
                   <hr className="my-2 border-gray-100" />
@@ -369,7 +415,7 @@ export const Sidebar = () => {
                     className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <FiLogOut className="text-red-500" />
-                                         <span>Sign Out</span>
+                                        <span>{t('nav.signOut')}</span>
                   </button>
                 </div>
               </div>
@@ -382,7 +428,7 @@ export const Sidebar = () => {
       {isOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden transition-opacity duration-300"
-          onClick={toggleSidebar}
+          onClick={toggleMobileSidebar}
         ></div>
       )}
     </>

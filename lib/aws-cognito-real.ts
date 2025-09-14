@@ -17,15 +17,22 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import { CognitoIdentityClient } from '@aws-sdk/client-cognito-identity';
+import { fromCognitoIdentityPool } from '@aws-sdk/credential-providers';
 import { AWS_CONFIG } from './config';
 
-// Initialize Cognito clients - las credenciales se obtendrán dinámicamente
+// Initialize Cognito clients with proper credentials
 const cognitoClient = new CognitoIdentityProviderClient({
-  region: AWS_CONFIG.region
+  region: AWS_CONFIG.region,
+  // Para operaciones públicas como login, no necesitamos credenciales
+  credentials: undefined
 });
 
 const identityClient = new CognitoIdentityClient({
-  region: AWS_CONFIG.region
+  region: AWS_CONFIG.region,
+  credentials: fromCognitoIdentityPool({
+    clientConfig: { region: AWS_CONFIG.region },
+    identityPoolId: AWS_CONFIG.cognito.identityPoolId,
+  })
 });
 
 export interface CognitoUser {

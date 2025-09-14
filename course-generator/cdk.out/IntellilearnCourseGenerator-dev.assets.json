@@ -1,0 +1,36 @@
+{
+  "version": "48.0.0",
+  "files": {
+    "e37c0d9a6bb51278d4bb117ddc6054166144b404963da8aa35a8be8385961877": {
+      "displayName": "CompletionHandler/Code",
+      "source": {
+        "path": "asset.e37c0d9a6bb51278d4bb117ddc6054166144b404963da8aa35a8be8385961877",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "076276934311-us-east-1-7e85d0a8": {
+          "bucketName": "cdk-hnb659fds-assets-076276934311-us-east-1",
+          "objectKey": "e37c0d9a6bb51278d4bb117ddc6054166144b404963da8aa35a8be8385961877.zip",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::076276934311:role/cdk-hnb659fds-file-publishing-role-076276934311-us-east-1"
+        }
+      }
+    },
+    "5876d03937b61c30b369f6f37a7dd621a3d21b0c666a9f22c7e408cb7de47b47": {
+      "displayName": "IntellilearnCourseGenerator-dev Template",
+      "source": {
+        "path": "IntellilearnCourseGenerator-dev.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "076276934311-us-east-1-f5d10d71": {
+          "bucketName": "cdk-hnb659fds-assets-076276934311-us-east-1",
+          "objectKey": "5876d03937b61c30b369f6f37a7dd621a3d21b0c666a9f22c7e408cb7de47b47.json",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::076276934311:role/cdk-hnb659fds-file-publishing-role-076276934311-us-east-1"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

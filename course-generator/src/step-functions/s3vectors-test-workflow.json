@@ -1,0 +1,162 @@
+{
+  "Comment": "🧪 S3 Vectors Test - Pasos 1 y 2 para Intellilearn",
+  "StartAt": "PreparePrompts",
+  "States": {
+    "PreparePrompts": {
+      "Type": "Pass",
+      "Comment": "📝 Preparar parámetros para prueba S3 Vectors",
+      "Parameters": {
+        "language.$": "$.language",
+        "level.$": "$.level",
+        "courseType.$": "$.courseType",
+        "duration.$": "$.duration",
+        "metadata": {
+          "courseId.$": "$$.Execution.Name",
+          "createdAt.$": "$$.State.EnteredTime",
+          "platform": "Intellilearn"
+        },
+        "currentStep": 1,
+        "totalSteps": 2,
+        "vectorConfig": {
+          "bucketName": "intellilearn-vectors",
+          "indexName": "courses-semantic-index",
+          "dimension": 1536,
+          "similarityMetric": "cosine"
+        },
+        "testQuery": "English A2 lesson about greetings and introductions"
+      },
+      "Next": "SearchSimilarCourses"
+    },
+
+    "SearchSimilarCourses": {
+      "Type": "Task",
+      "Comment": "🔍 PASO 1: Buscar cursos similares usando S3 Vectors",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "intellilearn-s3vectors-search",
+        "Payload": {
+          "action": "search_similar",
+          "vectorBucket": "intellilearn-vectors",
+          "indexName": "courses-semantic-index",
+          "queryText.$": "$.testQuery",
+          "topK": 5,
+          "filters": {
+            "cefr_level.$": "$.level",
+            "language.$": "$.language",
+            "artifact_type": "lesson_plan"
+          },
+          "returnDistance": true,
+          "returnMetadata": true
+        }
+      },
+      "ResultSelector": {
+        "similarCourses.$": "$.Payload.results",
+        "searchSummary.$": "$.Payload.summary",
+        "searchTimestamp.$": "$$.State.EnteredTime",
+        "searchSuccess": true
+      },
+      "ResultPath": "$.ragContext",
+      "Next": "GenerateOutlineWithRAG",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed", "States.Timeout"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Comment": "Si S3 Vectors falla, continuar sin RAG",
+          "Next": "GenerateOutlineWithoutRAG",
+          "ResultPath": "$.ragError"
+        }
+      ]
+    },
+
+    "GenerateOutlineWithRAG": {
+      "Type": "Task",
+      "Comment": "🎯 PASO 2: Generar outline con contexto RAG de S3 Vectors",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText.$": "States.Format('You are an expert Course Planner for language education. Create a comprehensive course outline with CEFR-aligned objectives for {} level {} course. IMPORTANT: Use the following similar courses as reference and inspiration, but create original content that builds upon these examples: {}. Provide a detailed, structured course outline that follows educational best practices and CEFR standards. Include specific references to how you used the similar content for inspiration.', $.language, $.level, States.JsonToString($.ragContext.similarCourses))",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.7,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Course Planner",
+        "timestamp.$": "$$.State.EnteredTime",
+        "ragEnhanced": true,
+        "ragContext.$": "$.ragContext"
+      },
+      "ResultPath": "$.outlineResult",
+      "Next": "TestSuccess"
+    },
+
+    "GenerateOutlineWithoutRAG": {
+      "Type": "Task",
+      "Comment": "🎯 PASO 2: Generar outline sin RAG (fallback)",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "amazon.titan-text-express-v1",
+        "Body": {
+          "inputText.$": "States.Format('You are an expert Course Planner for language education. Create a comprehensive course outline with CEFR-aligned objectives for {} level {} course. Provide a detailed, structured course outline that follows educational best practices and CEFR standards.', $.language, $.level)",
+          "textGenerationConfig": {
+            "maxTokenCount": 4000,
+            "temperature": 0.7,
+            "topP": 0.9
+          }
+        }
+      },
+      "ResultSelector": {
+        "content.$": "$.Body.results[0].outputText",
+        "role": "Course Planner",
+        "timestamp.$": "$$.State.EnteredTime",
+        "ragEnhanced": false,
+        "ragError.$": "$.ragError"
+      },
+      "ResultPath": "$.outlineResult",
+      "Next": "TestSuccess"
+    },
+
+    "TestSuccess": {
+      "Type": "Pass",
+      "Comment": "✅ Prueba S3 Vectors completada exitosamente",
+      "Parameters": {
+        "status": "SUCCESS",
+        "message": "S3 Vectors test completed successfully - Steps 1 & 2",
+        "testResults": {
+          "courseId.$": "$.metadata.courseId",
+          "language.$": "$.language",
+          "level.$": "$.level",
+          "courseType.$": "$.courseType",
+          "generatedAt.$": "$.metadata.createdAt",
+          "ragSearchPerformed.$": "$.ragContext.searchSuccess",
+          "similarCoursesFound.$": "States.ArrayLength($.ragContext.similarCourses)",
+          "outlineGenerated": true,
+          "ragEnhanced.$": "$.outlineResult.ragEnhanced"
+        },
+        "vectorConfig": {
+          "bucketName": "intellilearn-vectors",
+          "indexName": "courses-semantic-index",
+          "searchQuery.$": "$.testQuery",
+          "searchResults.$": "$.ragContext.searchSummary"
+        },
+        "outline.$": "$.outlineResult",
+        "models": {
+          "textGeneration": "amazon.titan-text-express-v1",
+          "vectorSearch": "amazon.titan-embed-text-v1"
+        }
+      },
+      "End": true
+    }
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "Comment": "🎓 Intellilearn Course Generator - Working version with proper JSONPath",
+  "StartAt": "PreparePrompts",
+  "States": {
+    "PreparePrompts": {
+      "Type": "Pass",
+      "Comment": "📝 Prepare course generation parameters",
+      "Parameters": {
+        "language.$": "$.language",
+        "level.$": "$.level",
+        "courseType.$": "$.courseType",
+        "duration.$": "$.duration",
+        "metadata": {
+          "courseId.$": "$$.Execution.Name",
+          "createdAt.$": "$$.State.EnteredTime",
+          "platform": "Intellilearn"
+        },
+        "step": 1,
+        "totalSteps": 4,
+        "results": []
+      },
+      "Next": "GenerateOutline"
+    },
+
+    "GenerateOutline": {
+      "Type": "Task",
+      "Comment": "🎯 Generate course outline",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "intellilearn-course-completion-handler",
+        "Payload": {
+          "action": "generate_content",
+          "language.$": "$.language",
+          "level.$": "$.level",
+          "courseType.$": "$.courseType",
+          "duration.$": "$.duration",
+          "currentRole": "Course Planner",
+          "prompt": "Create a comprehensive course outline for this language and level with CEFR-aligned objectives, modules, and assessment strategy."
+        }
+      },
+      "ResultPath": "$.outlineResult",
+      "Next": "GenerateCurriculum",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ]
+    },
+
+    "GenerateCurriculum": {
+      "Type": "Task",
+      "Comment": "📚 Generate curriculum content",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "intellilearn-course-completion-handler",
+        "Payload": {
+          "action": "generate_content",
+          "language.$": "$.language",
+          "level.$": "$.level",
+          "courseType.$": "$.courseType",
+          "duration.$": "$.duration",
+          "currentRole": "Curriculum Designer",
+          "prompt": "Develop detailed curriculum content for the first 3 modules with lesson plans, grammar, vocabulary, and cultural insights."
+        }
+      },
+      "ResultPath": "$.curriculumResult",
+      "Next": "GenerateExercises"
+    },
+
+    "GenerateExercises": {
+      "Type": "Task",
+      "Comment": "🏋️ Generate practice exercises",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "intellilearn-course-completion-handler",
+        "Payload": {
+          "action": "generate_content",
+          "language.$": "$.language",
+          "level.$": "$.level",
+          "courseType.$": "$.courseType",
+          "duration.$": "$.duration",
+          "currentRole": "Exercise Designer",
+          "prompt": "Design practice exercises including multiple choice, conversations for voice AI, and listening activities with answer keys."
+        }
+      },
+      "ResultPath": "$.exercisesResult",
+      "Next": "GenerateAssessments"
+    },
+
+    "GenerateAssessments": {
+      "Type": "Task",
+      "Comment": "📊 Generate assessment methods",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "intellilearn-course-completion-handler",
+        "Payload": {
+          "action": "generate_content",
+          "language.$": "$.language",
+          "level.$": "$.level",
+          "courseType.$": "$.courseType",
+          "duration.$": "$.duration",
+          "currentRole": "Assessment Specialist",
+          "prompt": "Create evaluation methods with diagnostic assessments, quizzes, and voice pronunciation criteria aligned with CEFR standards."
+        }
+      },
+      "ResultPath": "$.assessmentsResult",
+      "Next": "ProcessFinalContent"
+    },
+
+    "ProcessFinalContent": {
+      "Type": "Pass",
+      "Comment": "🎯 Prepare final course content",
+      "Parameters": {
+        "language.$": "$.language",
+        "level.$": "$.level",
+        "courseType.$": "$.courseType",
+        "duration.$": "$.duration",
+        "metadata.$": "$.metadata",
+        "outline.$": "$.outlineResult.Payload",
+        "curriculum.$": "$.curriculumResult.Payload",
+        "exercises.$": "$.exercisesResult.Payload",
+        "assessments.$": "$.assessmentsResult.Payload",
+        "status": "content_generated"
+      },
+      "Next": "StoreCourseContent"
+    },
+
+    "StoreCourseContent": {
+      "Type": "Task",
+      "Comment": "💾 Store course content to S3",
+      "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
+      "Parameters": {
+        "Bucket": "intellilearn-courses-dev",
+        "Key.$": "States.Format('courses/{}/{}/course-{}-{}.json', $.language, $.level, $.language, $.level)",
+        "Body.$": "States.JsonToString($)",
+        "ContentType": "application/json"
+      },
+      "ResultPath": "$.s3Result",
+      "Next": "NotifyCompletion"
+    },
+
+    "NotifyCompletion": {
+      "Type": "Task",
+      "Comment": "📧 Send completion notification",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "intellilearn-course-completion-handler",
+        "Payload": {
+          "action": "notify_completion",
+          "courseId.$": "$.metadata.courseId",
+          "language.$": "$.language",
+          "level.$": "$.level",
+          "s3Location.$": "$.s3Result.Key",
+          "status": "completed"
+        }
+      },
+      "ResultPath": "$.notificationResult",
+      "Next": "Success"
+    },
+
+    "Success": {
+      "Type": "Pass",
+      "Comment": "✅ Course generation completed successfully",
+      "Parameters": {
+        "status": "SUCCESS",
+        "message": "Course generated successfully",
+        "courseId.$": "$.metadata.courseId",
+        "language.$": "$.language",
+        "level.$": "$.level",
+        "s3Location.$": "$.s3Result.Key",
+        "generatedAt.$": "$.metadata.createdAt"
+      },
+      "End": true
+    }
+  }
+}

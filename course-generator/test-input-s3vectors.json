@@ -1,0 +1,23 @@
+{
+  "language": "English",
+  "level": "A2",
+  "courseType": "General English",
+  "duration": {
+    "weeks": 8,
+    "hoursPerWeek": 3,
+    "totalHours": 24
+  },
+  "testDescription": "S3 Vectors integration test - Steps 1 & 2 only",
+  "expectedBehavior": {
+    "step1": "Should search for similar A2 English lessons in S3 Vectors",
+    "step2": "Should generate course outline using RAG context from similar lessons",
+    "ragExpected": true,
+    "similarContentExpected": "lesson-001-greetings, lesson-002-family (A2 level)"
+  },
+  "metadata": {
+    "testName": "S3VectorsIntegrationTest",
+    "testVersion": "1.0",
+    "testDate": "2025-09-14",
+    "testPurpose": "Verify S3 Vectors search and RAG-enhanced content generation"
+  }
+}
